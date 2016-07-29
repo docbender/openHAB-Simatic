@@ -95,7 +95,7 @@ public class SimaticTCP extends SimaticGenericDevice {
     @Override
     public Boolean open() {
         if (logger.isDebugEnabled()) {
-            logger.debug("{} - Start listening", this.toString());
+            logger.debug("{} - connection try", this.toString());
         }
 
         portState.setState(PortStates.CLOSED);

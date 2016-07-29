@@ -105,13 +105,12 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
         //
         // Matcher matcher =
         // Pattern.compile("^(port\\d*):(\\d+):(\\d+):([a-z0-9\\[\\]]+):(I|O|IO)$").matcher(bindingConfig);
-        Matcher matcher = Pattern.compile("^(plc\\d*):([I|O|M|D|B|X|W|D0-9.]+)((:[a-zA-Z0-9_]*)*)$")
+        Matcher matcher = Pattern.compile("^(plc\\d*):([I|O|A|E|M|D|B|X|W|D0-9.]+)((:[a-zA-Z0-9_]*)*)$")
                 .matcher(bindingConfig);
 
         if (!matcher.matches()) {
             // look for info config
-            matcher = Pattern
-                    .compile("^(plc\\d*)(:(\\d+))*:info:((state)|(previous_state)|(state_change_time)|(packet_lost))$")
+            matcher = Pattern.compile("^(plc\\d*):info:((state)|(previous_state)|(state_change_time)|(packet_lost))$")
                     .matcher(bindingConfig);
 
             if (!matcher.matches()) {
@@ -125,13 +124,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
                 config.item = item;
                 config.device = matcher.group(1);
 
-                if (matcher.group(3) != null) {
-                    config.busAddress = Integer.valueOf(matcher.group(3)).intValue();
-                } else {
-                    config.busAddress = -1;
-                }
-
-                String param = matcher.group(4);
+                String param = matcher.group(3);
 
                 if (param.equalsIgnoreCase("state")) {
                     config.infoType = InfoType.STATE;
@@ -345,13 +338,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
     static class SimaticBindingConfig implements BindingConfig {
 
         public SimaticBindingConfig(Item item, String device, String address, SimaticTypes datatype) {
-            super();
-
-            this.item = item;
-            this.device = device;
-            this.address = address;
-            this.direction = 0;
-            this.datatype = datatype;
+            this(item, device, address, datatype, 0);
         }
 
         public SimaticBindingConfig(Item item, String device, String address, SimaticTypes datatype, int direction) {
@@ -359,9 +346,10 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
 
             this.item = item;
             this.device = device;
-            this.address = address;
             this.direction = direction;
             this.datatype = datatype;
+
+            this.address = new SimaticPLCAddress(address);
         }
 
         // // put member fields here which holds the parsed values
@@ -370,9 +358,11 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
 
         protected final int direction;
         protected final String device;
-        protected final String address;
+        // protected final String address;
         protected final SimaticTypes datatype;
         protected int datalength = 1;
+
+        SimaticPLCAddress address;
 
         /**
          * Return item data length
@@ -441,9 +431,8 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
                     + this.getDataType() + " Direction=" + this.direction + ")";
         }
 
-        public static boolean ValidateAddress(String address) {
-
-            return false;
+        public SimaticPLCAreaTypes getArea() {
+            return address.area;
         }
     }
 
@@ -460,13 +449,9 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
          */
         public Item item;
         /**
-         * Contains device(port) name ex.: port01
+         * Contains device(port) name ex.: plc01
          */
         public String device;
-        /**
-         * Contains slave address
-         */
-        public int busAddress;
         /**
          * Requested info type
          */

@@ -8,8 +8,11 @@
  */
 package org.openhab.binding.simatic.internal;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -511,5 +514,42 @@ public class SimaticGenericDevice implements SimaticIDevice {
     @Override
     public String toString() {
         return "DeviceID " + deviceID;
+    }
+
+    public void prepareData() {
+        if (itemsConfig == null) {
+            return;
+        }
+
+        // sort items by address
+        List<Map.Entry<String, SimaticBindingConfig>> list = new LinkedList<Map.Entry<String, SimaticBindingConfig>>(
+                itemsConfig.entrySet());
+
+        Collections.sort(list, new Comparator<Map.Entry<String, SimaticBindingConfig>>() {
+            @Override
+            public int compare(Map.Entry<String, SimaticBindingConfig> o1, Map.Entry<String, SimaticBindingConfig> o2) {
+                return (o1.getValue().address).compareTo(o2.getValue().address);
+            }
+        });
+
+        SimaticReadWriteDataArea readDataArea = null;
+
+        // prepare read queues
+        for (Map.Entry<String, SimaticBindingConfig> item : list) {
+            SimaticPLCAddress itemAddress = item.getValue().address;
+            if (readDataArea == null) {
+                readDataArea = new SimaticReadWriteDataArea(item.getValue());
+                readQueue.put(readDataArea);
+            } else if (itemAddress.getArea() != readDataArea.getArea()) {
+                readDataArea = new SimaticReadWriteDataArea();
+                readQueue.put(readDataArea);
+            }else if(){
+
+            } else {
+                readDataArea.addItem(item);
+            }
+
+        }
+
     }
 }
