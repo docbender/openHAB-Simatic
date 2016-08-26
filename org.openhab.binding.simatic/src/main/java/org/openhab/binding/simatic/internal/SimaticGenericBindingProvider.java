@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2015, openHAB.org and others.
+ * Copyright (c) 2010-2016, openHAB.org and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -145,7 +145,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
             SimaticTypes dataType;
             int direction;
 
-            if (!SimaticBindingConfig.ValidateAddress(address)) {
+            if (!SimaticPLCAddress.ValidateAddress(address)) {
                 throw new BindingConfigParseException("Invalid plc address: " + address);
             }
 
@@ -158,10 +158,11 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
                     dataType = resolveDataTypeFromItemType(item);
                 }
 
-                config = new SimaticBindingConfig(item, device, address, dataType, direction);
-
                 if (dataType == SimaticTypes.ARRAY) {
-                    config.setDataLenght(resolveConfigDataLength(matcher.group(3), item));
+                    config = new SimaticBindingConfig(item, device, address, dataType, direction,
+                            resolveConfigDataLength(matcher.group(3), item));
+                } else {
+                    config = new SimaticBindingConfig(item, device, address, dataType, direction);
                 }
             } else {
                 dataType = resolveDataTypeFromItemType(item);
@@ -352,6 +353,18 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
             this.address = new SimaticPLCAddress(address);
         }
 
+        public SimaticBindingConfig(Item item, String device, String address, SimaticTypes datatype, int direction,
+                int dataLength) {
+            super();
+
+            this.item = item;
+            this.device = device;
+            this.direction = direction;
+            this.datatype = datatype;
+
+            this.address = new SimaticPLCAddress(address, dataLength);
+        }
+
         // // put member fields here which holds the parsed values
         protected final Item item;
         // Class<? extends Item> itemType;
@@ -360,7 +373,6 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
         protected final String device;
         // protected final String address;
         protected final SimaticTypes datatype;
-        protected int datalength = 1;
 
         SimaticPLCAddress address;
 
@@ -370,11 +382,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
          * @return
          */
         public int getDataLenght() {
-            return datalength;
-        }
-
-        protected void setDataLenght(int value) {
-            datalength = value;
+            return address.getDataLength();
         }
 
         /**
@@ -433,6 +441,18 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
 
         public SimaticPLCAreaTypes getArea() {
             return address.area;
+        }
+
+        public SimaticPLCAddress getAddress() {
+            return address;
+        }
+
+        public Item getOpenHabItem() {
+            return item;
+        }
+
+        public String getName() {
+            return item.getName();
         }
     }
 

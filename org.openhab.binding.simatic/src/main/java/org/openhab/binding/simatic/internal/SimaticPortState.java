@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2015, openHAB.org and others.
+ * Copyright (c) 2010-2016, openHAB.org and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -18,10 +18,10 @@ import org.openhab.core.library.types.DateTimeType;
 import org.openhab.core.library.types.DecimalType;
 
 /**
- * Status of communication port
+ * Status of communication
  *
  * @author Vita Tucek
- * @since 1.8.0
+ * @since 1.9.0
  */
 public class SimaticPortState {
 
@@ -35,17 +35,23 @@ public class SimaticPortState {
         RESPONSE_ERROR
     }
 
+    /** Current device connection state **/
     private PortStates state = PortStates.UNKNOWN;
+    /** Previous device connection state **/
     private PortStates prevState = PortStates.UNKNOWN;
+    /** Connection state change time **/
     private Calendar changedSince;
     private EventPublisher eventPublisher;
+    /** Item name defined for "State" tag in items file configuration **/
     private String itemState = null;
+    /** Item name defined for "PreviousState" tag in items file configuration **/
     private String itemPreviousState = null;
+    /** Item name defined for "StateChangeTime" tag in items file configuration **/
     private String itemStateChangeTime = null;
 
     /**
      * Return port status
-     * 
+     *
      * @return
      */
     public PortStates getState() {
@@ -54,7 +60,7 @@ public class SimaticPortState {
 
     /**
      * Return previous status
-     * 
+     *
      * @return
      */
     public PortStates getPreviusState() {
@@ -63,7 +69,7 @@ public class SimaticPortState {
 
     /**
      * Return date when last change occurred
-     * 
+     *
      * @return
      */
     public Calendar getChangeDate() {
@@ -72,7 +78,7 @@ public class SimaticPortState {
 
     /**
      * Set port state
-     * 
+     *
      * @param state
      */
     public void setState(PortStates state) {
@@ -98,7 +104,7 @@ public class SimaticPortState {
 
     /**
      * Set binding data for internal use and port item state init
-     * 
+     *
      * @param eventPublisher
      * @param itemsInfoConfig
      * @param deviceName
@@ -110,17 +116,13 @@ public class SimaticPortState {
         for (Map.Entry<String, SimaticInfoBindingConfig> item : itemsInfoConfig.entrySet()) {
 
             if (item.getValue().device.equals(deviceName)) {
-
-                // check correct address
-                if (item.getValue().busAddress == -1) {
-                    // find right info type
-                    if (item.getValue().infoType == InfoType.STATE) {
-                        itemState = item.getValue().item.getName();
-                    } else if (item.getValue().infoType == InfoType.PREVIOUS_STATE) {
-                        itemPreviousState = item.getValue().item.getName();
-                    } else if (item.getValue().infoType == InfoType.STATE_CHANGE_TIME) {
-                        itemStateChangeTime = item.getValue().item.getName();
-                    }
+                // find right info type
+                if (item.getValue().infoType == InfoType.STATE) {
+                    itemState = item.getValue().item.getName();
+                } else if (item.getValue().infoType == InfoType.PREVIOUS_STATE) {
+                    itemPreviousState = item.getValue().item.getName();
+                } else if (item.getValue().infoType == InfoType.STATE_CHANGE_TIME) {
+                    itemStateChangeTime = item.getValue().item.getName();
                 }
             }
         }

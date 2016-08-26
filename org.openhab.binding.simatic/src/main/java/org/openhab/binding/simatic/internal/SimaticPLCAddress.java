@@ -1,8 +1,22 @@
+/**
+ * Copyright (c) 2010-2016, openHAB.org and others.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.openhab.binding.simatic.internal;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * PLC address class
+ *
+ * @author Vita Tucek
+ * @since 1.9.0
+ */
 public class SimaticPLCAddress implements Comparable {
 
     final String address;
@@ -11,10 +25,17 @@ public class SimaticPLCAddress implements Comparable {
     Integer DBNum = 0;
     SimaticPLCAreaTypes area = SimaticPLCAreaTypes.UNKNOWN_AREA;
     SimaticPLCDataTypes dataType = SimaticPLCDataTypes.UNKNOWN_TYPE;
+    Integer dataLength;
 
     public SimaticPLCAddress(String address) {
         this.address = address;
 
+        this.dataLength = prepareAddress();
+    }
+
+    public SimaticPLCAddress(String address, int dataLength) {
+        this.address = address;
+        this.dataLength = dataLength;
         prepareAddress();
     }
 
@@ -51,6 +72,10 @@ public class SimaticPLCAddress implements Comparable {
         return DBNum;
     }
 
+    public SimaticPLCAreaTypes getArea() {
+        return area;
+    }
+
     public static boolean ValidateAddress(String address) {
 
         Matcher matcher = Pattern
@@ -60,20 +85,29 @@ public class SimaticPLCAddress implements Comparable {
         return matcher.matches();
     }
 
-    void prepareAddress() {
+    /**
+     * Prepare simatic address from string representation
+     *
+     * @return Returns datatype length [bytes]
+     */
+    int prepareAddress() {
         try {
             if (address.startsWith("MD")) {
                 addressByte = Integer.parseInt(address.substring(2));
                 area = SimaticPLCAreaTypes.M;
                 dataType = SimaticPLCDataTypes.DWORD;
+
+                return 4;
             } else if (address.startsWith("MW")) {
                 addressByte = Integer.parseInt(address.substring(2));
                 area = SimaticPLCAreaTypes.M;
                 dataType = SimaticPLCDataTypes.WORD;
+                return 2;
             } else if (address.startsWith("MB")) {
                 addressByte = Integer.parseInt(address.substring(2));
                 area = SimaticPLCAreaTypes.M;
                 dataType = SimaticPLCDataTypes.BYTE;
+                return 1;
             } else if (address.startsWith("M")) {
                 String[] items = address.split(".");
 
@@ -88,18 +122,26 @@ public class SimaticPLCAddress implements Comparable {
 
                 area = SimaticPLCAreaTypes.M;
                 dataType = SimaticPLCDataTypes.BIT;
+
+                return 1;
             } else if (address.startsWith("ID") || address.startsWith("ED")) {
                 addressByte = Integer.parseInt(address.substring(2));
                 area = SimaticPLCAreaTypes.I;
                 dataType = SimaticPLCDataTypes.DWORD;
+
+                return 4;
             } else if (address.startsWith("IW") || address.startsWith("EW")) {
                 addressByte = Integer.parseInt(address.substring(2));
                 area = SimaticPLCAreaTypes.I;
                 dataType = SimaticPLCDataTypes.WORD;
+
+                return 2;
             } else if (address.startsWith("IB") || address.startsWith("EB")) {
                 addressByte = Integer.parseInt(address.substring(2));
                 area = SimaticPLCAreaTypes.I;
                 dataType = SimaticPLCDataTypes.BYTE;
+
+                return 1;
             } else if (address.startsWith("I") || address.startsWith("E")) {
                 String[] items = address.split(".");
 
@@ -114,18 +156,26 @@ public class SimaticPLCAddress implements Comparable {
 
                 area = SimaticPLCAreaTypes.I;
                 dataType = SimaticPLCDataTypes.BIT;
+
+                return 1;
             } else if (address.startsWith("QD") || address.startsWith("AD")) {
                 addressByte = Integer.parseInt(address.substring(2));
                 area = SimaticPLCAreaTypes.Q;
                 dataType = SimaticPLCDataTypes.DWORD;
+
+                return 4;
             } else if (address.startsWith("QW") || address.startsWith("AW")) {
                 addressByte = Integer.parseInt(address.substring(2));
                 area = SimaticPLCAreaTypes.Q;
                 dataType = SimaticPLCDataTypes.WORD;
+
+                return 2;
             } else if (address.startsWith("QB") || address.startsWith("AB")) {
                 addressByte = Integer.parseInt(address.substring(2));
                 area = SimaticPLCAreaTypes.Q;
                 dataType = SimaticPLCDataTypes.BYTE;
+
+                return 1;
             } else if (address.startsWith("Q") || address.startsWith("A")) {
                 String[] items = address.split(".");
 
@@ -140,6 +190,8 @@ public class SimaticPLCAddress implements Comparable {
 
                 area = SimaticPLCAreaTypes.Q;
                 dataType = SimaticPLCDataTypes.BIT;
+
+                return 1;
             } else if (address.startsWith("DB")) {
                 String[] items = address.split(".");
 
@@ -147,18 +199,22 @@ public class SimaticPLCAddress implements Comparable {
                     throw new Exception("Short DB address");
                 }
 
+                area = SimaticPLCAreaTypes.DB;
                 DBNum = Integer.parseInt(items[0].substring(2));
                 String tmp = items[1];
 
                 if (tmp.startsWith("DBD")) {
                     addressByte = Integer.parseInt(tmp.substring(3));
                     dataType = SimaticPLCDataTypes.DWORD;
+                    return 4;
                 } else if (tmp.startsWith("DBW")) {
                     addressByte = Integer.parseInt(tmp.substring(3));
                     dataType = SimaticPLCDataTypes.WORD;
+                    return 2;
                 } else if (tmp.startsWith("DBB")) {
                     addressByte = Integer.parseInt(tmp.substring(3));
                     dataType = SimaticPLCDataTypes.WORD;
+                    return 1;
                 } else if (tmp.startsWith("DBX")) {
                     if (items.length < 3) {
                         throw new Exception("No bit area");
@@ -167,12 +223,12 @@ public class SimaticPLCAddress implements Comparable {
                     addressByte = Integer.parseInt(tmp.substring(3, tmp.length() - 3));
                     addressBit = Integer.parseInt(items[2]);
                     dataType = SimaticPLCDataTypes.BIT;
+                    return 1;
                 } else {
                     area = SimaticPLCAreaTypes.UNKNOWN_AREA;
                     throw new Exception("Invalid area");
                 }
 
-                area = SimaticPLCAreaTypes.DB;
             } else {
                 area = SimaticPLCAreaTypes.UNKNOWN_AREA;
                 throw new Exception("Invalid area");
@@ -180,6 +236,8 @@ public class SimaticPLCAddress implements Comparable {
         } catch (Exception ex) {
             // logger.warn("Invalid address " + address + " (" + ex.getMessage() + ")");
         }
+
+        return 1;
     }
 
     @Override
@@ -197,4 +255,7 @@ public class SimaticPLCAddress implements Comparable {
                 ? (addrResult == 0 ? this.addressBit.compareTo(obj.addressBit) : addrResult) : dbResult) : areaResult;
     }
 
+    public int getDataLength() {
+        return dataLength;
+    }
 }

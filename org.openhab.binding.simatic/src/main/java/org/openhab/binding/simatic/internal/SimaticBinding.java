@@ -130,6 +130,7 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
 
         for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
             item.getValue().setBindingData(eventPublisher, items, infoItems);
+            item.getValue().prepareData();
             item.getValue().open();
         }
     }

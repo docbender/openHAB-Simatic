@@ -204,7 +204,38 @@ public class SimaticTCP extends SimaticGenericDevice {
      */
     @Override
     public void checkNewData() {
-        super.checkNewData();
+        if (isConnected()) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("{} - checkNewData() is called", toString());
+            }
+
+            if (!readLock.tryLock()) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("{} - Reading allready in progress", toString());
+                }
+                return;
+            }
+
+            readLock.lock();
+
+            for (SimaticReadWriteDataArea area : readAreasList.getData()) {
+                byte[] buffer = new byte[area.getAddressSpaceLenght()];
+
+                if (dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
+                        area.getAddressSpaceLenght(), buffer) != 0) {
+                    logger.warn("{} - Read data area error ({})", toString(), area.toString());
+                    continue;
+                }
+
+                int start = area.getStartAddress();
+
+                for (SimaticBindingConfig item : area.getItems()) {
+                    this.postValue(item, buffer, item.getAddress().getByteOffset() - start);
+                }
+            }
+
+            readLock.unlock();
+        }
     }
 
     @Override
