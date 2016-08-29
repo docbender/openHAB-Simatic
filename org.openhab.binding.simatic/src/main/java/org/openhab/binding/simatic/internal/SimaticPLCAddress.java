@@ -11,6 +11,9 @@ package org.openhab.binding.simatic.internal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * PLC address class
  *
@@ -18,6 +21,7 @@ import java.util.regex.Pattern;
  * @since 1.9.0
  */
 public class SimaticPLCAddress implements Comparable {
+    private static final Logger logger = LoggerFactory.getLogger(SimaticPLCAddress.class);
 
     final String address;
     Integer addressByte = 0;
@@ -109,13 +113,13 @@ public class SimaticPLCAddress implements Comparable {
                 dataType = SimaticPLCDataTypes.BYTE;
                 return 1;
             } else if (address.startsWith("M")) {
-                String[] items = address.split(".");
+                String[] items = address.split("\\.");
 
                 if (items.length != 2) {
                     throw new Exception("No bit area");
                 }
 
-                addressByte = Integer.parseInt(items[0].substring(1, items[0].length() - 1));
+                addressByte = Integer.parseInt(items[0].substring(1, items[0].length()));
                 addressBit = Integer.parseInt(items[1]);
 
                 items = null;
@@ -143,13 +147,13 @@ public class SimaticPLCAddress implements Comparable {
 
                 return 1;
             } else if (address.startsWith("I") || address.startsWith("E")) {
-                String[] items = address.split(".");
+                String[] items = address.split("\\.");
 
                 if (items.length != 2) {
                     throw new Exception("No bit area");
                 }
 
-                addressByte = Integer.parseInt(items[0].substring(1, items[0].length() - 1));
+                addressByte = Integer.parseInt(items[0].substring(1, items[0].length()));
                 addressBit = Integer.parseInt(items[1]);
 
                 items = null;
@@ -177,13 +181,13 @@ public class SimaticPLCAddress implements Comparable {
 
                 return 1;
             } else if (address.startsWith("Q") || address.startsWith("A")) {
-                String[] items = address.split(".");
+                String[] items = address.split("\\.");
 
                 if (items.length != 2) {
                     throw new Exception("No bit area");
                 }
 
-                addressByte = Integer.parseInt(items[0].substring(1, items[0].length() - 1));
+                addressByte = Integer.parseInt(items[0].substring(1, items[0].length()));
                 addressBit = Integer.parseInt(items[1]);
 
                 items = null;
@@ -193,7 +197,7 @@ public class SimaticPLCAddress implements Comparable {
 
                 return 1;
             } else if (address.startsWith("DB")) {
-                String[] items = address.split(".");
+                String[] items = address.split("\\.");
 
                 if (items.length < 2) {
                     throw new Exception("Short DB address");
@@ -220,7 +224,7 @@ public class SimaticPLCAddress implements Comparable {
                         throw new Exception("No bit area");
                     }
 
-                    addressByte = Integer.parseInt(tmp.substring(3, tmp.length() - 3));
+                    addressByte = Integer.parseInt(tmp.substring(3, tmp.length()));
                     addressBit = Integer.parseInt(items[2]);
                     dataType = SimaticPLCDataTypes.BIT;
                     return 1;
@@ -234,7 +238,7 @@ public class SimaticPLCAddress implements Comparable {
                 throw new Exception("Invalid area");
             }
         } catch (Exception ex) {
-            // logger.warn("Invalid address " + address + " (" + ex.getMessage() + ")");
+            logger.warn("Invalid address " + address + " (" + ex.getMessage() + ")");
         }
 
         return 1;
@@ -257,5 +261,28 @@ public class SimaticPLCAddress implements Comparable {
 
     public int getDataLength() {
         return dataLength;
+    }
+
+    @Override
+    public String toString() {
+        if (area == SimaticPLCAreaTypes.DB) {
+            if (dataType == SimaticPLCDataTypes.BIT) {
+                return address + "/DB" + DBNum + ".DBX" + addressByte + "." + addressBit;
+            } else if (dataType == SimaticPLCDataTypes.DWORD) {
+                return address + "/DB" + DBNum + ".DBD" + addressByte;
+            } else if (dataType == SimaticPLCDataTypes.WORD) {
+                return address + "/DB" + DBNum + ".DBW" + addressByte;
+            } else {
+                return address + "/DB" + DBNum + ".DBB" + addressByte;
+            }
+        } else if (dataType == SimaticPLCDataTypes.BIT) {
+            return address + "/" + area.toString() + addressByte + "." + addressBit;
+        } else if (dataType == SimaticPLCDataTypes.DWORD) {
+            return address + "/" + area.toString() + "D" + addressByte;
+        } else if (dataType == SimaticPLCDataTypes.WORD) {
+            return address + "/" + area.toString() + "W" + addressByte;
+        } else {
+            return address + "/" + area.toString() + "B" + addressByte;
+        }
     }
 }

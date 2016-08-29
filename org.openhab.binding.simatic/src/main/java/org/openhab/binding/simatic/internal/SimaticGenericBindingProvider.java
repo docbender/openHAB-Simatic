@@ -154,7 +154,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
                 dataType = resolveConfigDataType(matcher.group(3), item);
                 direction = resolveConfigDirection(matcher.group(3));
 
-                if (dataType != null) {
+                if (dataType == null) {
                     dataType = resolveDataTypeFromItemType(item);
                 }
 

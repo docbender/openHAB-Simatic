@@ -542,6 +542,11 @@ public class SimaticGenericDevice implements SimaticIDevice {
 
         // prepare read queues
         for (Map.Entry<String, SimaticBindingConfig> item : list) {
+            // no data with output direction
+            if (item.getValue().direction == 2) {
+                continue;
+            }
+
             if (readDataArea == null || readDataArea.isItemOutOfRange(item.getValue())) {
                 readDataArea = new SimaticReadWriteDataArea(item.getValue());
                 readAreasList.put(readDataArea);
@@ -560,6 +565,8 @@ public class SimaticGenericDevice implements SimaticIDevice {
         State state = null;
         Class<?> itemclass = item.getOpenHabItem().getClass();
 
+        logger.info("postvalue Class=" + itemclass.toString());
+
         // no byte swap for array
         if (item.datatype == SimaticTypes.ARRAY) {
             bb.order(ByteOrder.BIG_ENDIAN);
@@ -577,7 +584,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
             }
         } else {
 
-            if (itemclass.isAssignableFrom(ColorItem.class)) {
+            if (!itemclass.isAssignableFrom(SwitchItem.class) && itemclass.isAssignableFrom(ColorItem.class)) {
                 if (item.address.dataType != SimaticPLCDataTypes.DWORD) {
                     logger.warn("{} - Incoming data item {} - Color item must have DWORD address", toString(),
                             item.getName());
@@ -598,48 +605,48 @@ public class SimaticGenericDevice implements SimaticIDevice {
                     }
                 }
             } else {
-                int intValue = 0;
-
-                if (item.address.dataType == SimaticPLCDataTypes.BIT) {
-                    intValue = ((bb.get() & (2 ^ item.getAddress().getBitOffset())) != 0 ? 1 : 0);
-                } else if (item.address.dataType == SimaticPLCDataTypes.BYTE) {
-                    intValue = bb.get();
-                } else if (item.address.dataType == SimaticPLCDataTypes.WORD) {
-                    intValue = bb.getShort();
-                } else if (item.address.dataType == SimaticPLCDataTypes.DWORD) {
-                    intValue = bb.getInt();
-                }
-
-                if (itemclass.isAssignableFrom(NumberItem.class)) {
-                    if (item.datatype == SimaticTypes.FLOAT) {
-                        if (item.address.dataType == SimaticPLCDataTypes.DWORD) {
-                            state = new DecimalType(bb.getFloat());
-                        } else {
-                            logger.warn("{} - Incoming data item {} - Float is only supported with DWORD address.",
-                                    toString(), item.getName());
-                        }
+                if ((item.datatype == SimaticTypes.FLOAT) && itemclass.isAssignableFrom(NumberItem.class)) {
+                    if (item.address.dataType == SimaticPLCDataTypes.DWORD) {
+                        state = new DecimalType(bb.getFloat());
                     } else {
-                        state = new DecimalType(intValue);
+                        logger.warn("{} - Incoming data item {} - Float is only supported with DWORD address.",
+                                toString(), item.getName());
                     }
-                } else if (itemclass.isAssignableFrom(SwitchItem.class)) {
-                    if (intValue == 1) {
-                        state = OnOffType.ON;
-                    } else {
-                        state = OnOffType.OFF;
-                    }
-                } else if (itemclass.isAssignableFrom(DimmerItem.class)) {
-                    state = new PercentType(intValue);
-                } else if (itemclass.isAssignableFrom(ContactItem.class)) {
-                    if (intValue == 1) {
-                        state = OpenClosedType.OPEN;
-                    } else {
-                        state = OpenClosedType.CLOSED;
-                    }
-                } else if (itemclass.isAssignableFrom(RollershutterItem.class)) {
-                    state = new PercentType(intValue);
                 } else {
-                    logger.warn("{} - Incoming data item {} - Class {} is not supported.", toString(), item.getName(),
-                            itemclass.toString());
+                    int intValue = 0;
+
+                    if (item.address.dataType == SimaticPLCDataTypes.BIT) {
+                        intValue = ((bb.get() & (2 ^ item.getAddress().getBitOffset())) != 0 ? 1 : 0);
+                    } else if (item.address.dataType == SimaticPLCDataTypes.BYTE) {
+                        intValue = bb.get();
+                    } else if (item.address.dataType == SimaticPLCDataTypes.WORD) {
+                        intValue = bb.getShort();
+                    } else if (item.address.dataType == SimaticPLCDataTypes.DWORD) {
+                        intValue = bb.getInt();
+                    }
+
+                    if (itemclass.isAssignableFrom(NumberItem.class)) {
+                        state = new DecimalType(intValue);
+                    } else if (itemclass.isAssignableFrom(SwitchItem.class)) {
+                        if (intValue == 1) {
+                            state = OnOffType.ON;
+                        } else {
+                            state = OnOffType.OFF;
+                        }
+                    } else if (itemclass.isAssignableFrom(DimmerItem.class)) {
+                        state = new PercentType(intValue);
+                    } else if (itemclass.isAssignableFrom(ContactItem.class)) {
+                        if (intValue == 1) {
+                            state = OpenClosedType.OPEN;
+                        } else {
+                            state = OpenClosedType.CLOSED;
+                        }
+                    } else if (itemclass.isAssignableFrom(RollershutterItem.class)) {
+                        state = new PercentType(intValue);
+                    } else {
+                        logger.warn("{} - Incoming data item {} - Class {} is not supported.", toString(),
+                                item.getName(), itemclass.toString());
+                    }
                 }
             }
         }
