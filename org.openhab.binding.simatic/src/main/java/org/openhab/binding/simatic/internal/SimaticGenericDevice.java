@@ -22,6 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.openhab.binding.simatic.internal.SimaticGenericBindingProvider.SimaticBindingConfig;
 import org.openhab.binding.simatic.internal.SimaticGenericBindingProvider.SimaticInfoBindingConfig;
+import org.openhab.binding.simatic.internal.SimaticPortState.PortStates;
 import org.openhab.core.events.EventPublisher;
 import org.openhab.core.library.items.ColorItem;
 import org.openhab.core.library.items.ContactItem;
@@ -64,14 +65,14 @@ public class SimaticGenericDevice implements SimaticIDevice {
     /** flag that device is connected */
     protected boolean connected = false;
     /** queue for commands */
-    protected final Deque<SimaticItemData> commandQueue = new LinkedList<SimaticItemData>();
+    protected final Deque<SimaticWriteDataArea> commandQueue = new LinkedList<SimaticWriteDataArea>();
     /** State of socket */
     public SimaticPortState portState = new SimaticPortState();
     /** Lock for process commands to prevent run it twice **/
     protected final Lock lock = new ReentrantLock();
     protected final Lock readLock = new ReentrantLock();
     /** Read PLC areas **/
-    protected SimaticReadWriteQueue readAreasList = new SimaticReadWriteQueue();
+    protected SimaticReadQueue readAreasList = new SimaticReadQueue();
 
     public enum ProcessDataResult {
         OK,
@@ -173,10 +174,8 @@ public class SimaticGenericDevice implements SimaticIDevice {
      */
     @Override
     public void sendData(String itemName, Command command, SimaticBindingConfig config) {
-        // compile data
-        // SimaticItem data = SimaticProtocol.compileDataFrame(itemName, command, config);
 
-        // sendData(data);
+        sendData(SimaticWriteDataArea.create(command, config));
     }
 
     /**
@@ -184,7 +183,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
      *
      * @param data
      */
-    public void sendData(SimaticItemData data) {
+    public void sendData(SimaticWriteDataArea data) {
         if (data != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("{}: Adding command into queue", toString());
@@ -192,160 +191,25 @@ public class SimaticGenericDevice implements SimaticIDevice {
 
             // lock queue
             lock.lock();
-            // add data
-            commandQueue.offer(data);
+
+            if (commandQueue.size() == 0) {
+                // add data
+                commandQueue.addFirst(data);
+            } else {
+                for (SimaticWriteDataArea item : commandQueue) {
+                    if (!item.isItemOutOfRange(data.getAddress())) {
+                        item.insert(data);
+
+                        break;
+                    }
+                }
+            }
             // unlock queue
             lock.unlock();
 
             processCommandQueue();
         } else {
             logger.warn("{}: Nothing to send. Empty data", toString());
-        }
-    }
-
-    /**
-     * Add compiled data item to sending queue at first place
-     *
-     * @param data
-     */
-    public void sendDataPriority(SimaticItemData data) {
-        if (data != null) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("{}: Adding priority command into queue", toString());
-            }
-
-            // lock queue
-            lock.lock();
-            // add data
-            commandQueue.addFirst(data);
-            // unlock queue
-            lock.unlock();
-
-            processCommandQueue();
-        } else {
-            logger.warn("{}: Nothing to send. Empty data", toString());
-        }
-    }
-
-    //
-    // /**
-    // * Prepare request to check if device with specific address has new data
-    // *
-    // * @param deviceAddress Device address
-    // * @param forceAllDataAsNew Flag to force send all data from slave
-    // */
-    // protected void offerNewDataCheck(int deviceAddress, boolean forceAllDataAsNew) {
-    // SimaticItemData data = SimaticProtocol.compileNewDataFrame(deviceAddress, forceAllDataAsNew);
-    //
-    // lock.lock();
-    // // check if packet already exist
-    // if (!dataInQueue(data)) {
-    // commandQueue.offer(data);
-    // }
-    // lock.unlock();
-    //
-    // // processCommandQueue();
-    // }
-    //
-    // /**
-    // * Put "check new data" packet of specified device in front of command queue
-    // *
-    // * @param deviceAddress Device address
-    // */
-    // protected void offerNewDataCheckPriority(int deviceAddress) {
-    // offerNewDataCheckPriority(deviceAddress, false);
-    // }
-    //
-    // /**
-    // * Put "check new data" packet of specified device in front of command queue
-    // *
-    // * @param deviceAddress Device address
-    // * @param forceAllDataAsNew Flag to force send all data from slave
-    // */
-    // protected void offerNewDataCheckPriority(int deviceAddress, boolean forceAllDataAsNew) {
-    // SimaticItemData data = SimaticProtocol.compileNewDataFrame(deviceAddress, forceAllDataAsNew);
-    //
-    // lock.lock();
-    // commandQueue.addFirst(data);
-    // lock.unlock();
-    // }
-    //
-    // /**
-    // * Check if data packet is not already in queue
-    // *
-    // * @param item
-    // * @return
-    // */
-    // protected boolean dataInQueue(SimaticItemData item) {
-    // if (commandQueue.isEmpty()) {
-    // return false;
-    // }
-    //
-    // for (SimaticItemData qitem : commandQueue) {
-    // if (qitem.getData().length != item.getData().length) {
-    // break;
-    // }
-    //
-    // for (int i = 0; i < qitem.getData().length; i++) {
-    // if (qitem.getData()[i] != item.getData()[i]) {
-    // break;
-    // }
-    //
-    // if (i == qitem.getData().length - 1) {
-    // return true;
-    // }
-    // }
-    // }
-    //
-    // return false;
-    // }
-
-    /**
-     * Check if queue has data for specified device and send it
-     *
-     */
-    protected void processCommandQueue(int thisDeviceOnly) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("{} - Processing commandQueue - length {}. Thread={}", toString(), commandQueue.size(),
-                    Thread.currentThread().getId());
-        }
-
-        // no reply expected
-        if (!canSend()) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("{} - Processing commandQueue - waiting", this.toString());
-            }
-            return;
-        }
-
-        if (!lock.tryLock()) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("{} - CommandQueue locked. Leaving processCommandQueue.", toString());
-            }
-            return;
-        }
-
-        SimaticItemData dataToSend = null;
-        //
-        // try {
-        // // queue is empty -> exit
-        // if (commandQueue.isEmpty()) {
-        // return;
-        // }
-        //
-        // for (SimaticItemData i : commandQueue) {
-        // if (i.deviceId == thisDeviceOnly) {
-        // commandQueue.removeFirstOccurrence(i);
-        // dataToSend = i;
-        // break;
-        // }
-        // }
-        // } finally {
-        // lock.unlock();
-        // }
-
-        if (dataToSend != null) {
-            sendDataOut(dataToSend);
         }
     }
 
@@ -374,56 +238,23 @@ public class SimaticGenericDevice implements SimaticIDevice {
             return;
         }
 
-        SimaticItemData dataToSend = null;
+        SimaticWriteDataArea dataToSend = null;
 
-        // try {
-        // // queue is empty -> exit
-        // if (commandQueue.isEmpty()) {
-        // return;
-        // }
-        //
-        // // check first command in queue
-        // SimaticItemData firstdata = commandQueue.peek();
-        // // state of command device
-        // DeviceStates state = this.devicesStates.getDeviceState(firstdata.deviceId);
-        //
-        // // check if device responds and there is lot of commands
-        // if (state != DeviceStates.NOT_RESPONDING && (commandQueue.size() > 1)) {
-        // dataToSend = commandQueue.poll();
-        // } else {
-        // // reorder queue - all commands from dead device put at the end of the queue
-        // List<SimaticItemData> deadData = new ArrayList<SimaticItemData>();
-        //
-        // SimaticItemData data = firstdata;
-        //
-        // // over all items until item isn't same as first one
-        // do {
-        // if (data.deviceId == firstdata.deviceId) {
-        // deadData.add(data);
-        // } else {
-        // commandQueue.offer(data);
-        // }
-        //
-        // data = commandQueue.poll();
-        //
-        // if (firstdata == data) {
-        // break;
-        // }
-        //
-        // } while (true);
-        //
-        // // TODO: at begin put "check new data"??? - but only if ONCHANGE. What if ONSCAN???
-        //
-        // // add dead device data
-        // commandQueue.addAll(deadData);
-        //
-        // // put first command (no matter if device not responding)
-        // dataToSend = commandQueue.poll();
-        // }
-        // } catch (Exception e) {
-        // } finally {
-        // lock.unlock();
-        // }
+        try {
+            // queue is empty -> exit
+            if (commandQueue.isEmpty()) {
+                return;
+            }
+
+            // check if device responds and there is lot of commands
+            if (this.portState.getState() != PortStates.NOT_RESPONDING) {
+                dataToSend = commandQueue.poll();
+            }
+        } catch (Exception e) {
+
+        } finally {
+            lock.unlock();
+        }
 
         if (dataToSend != null) {
             sendDataOut(dataToSend);
@@ -431,7 +262,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     }
 
     protected boolean canSend() {
-        return true;
+        return this.isConnected();
     }
 
     /**
@@ -442,52 +273,12 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * @return
      *         Return true when data were sent
      */
-    protected boolean sendDataOut(SimaticItemData data) {
+    protected boolean sendDataOut(SimaticWriteDataArea data) {
 
         logger.warn("{} - Generic device cant send data", this.toString());
 
         return false;
     }
-
-    // /**
-    // * Resend last sended data
-    // */
-    // protected void resendData(SimaticItemData lastData) {
-    // if (lastData != null) {
-    // if (lastData.getResendCounter() < MAX_RESEND_COUNT) {
-    // lastData.incrementResendCounter();
-    // sendDataPriority(lastData);
-    // } else {
-    // logger.warn("{} - Device {} - Max resend attempts reached.", this.toString(), lastData.getDeviceId());
-    // // set state
-    // devicesStates.setDeviceState(this.deviceName, lastData.getDeviceId(), DeviceStates.RESPONSE_ERROR);
-    // }
-    // }
-    // }
-
-    // /**
-    // * Print communication information
-    // *
-    // */
-    // protected void printCommunicationInfo(SimaticByteBuffer inBuffer, SimaticItemData lastSentData) {
-    // try {
-    // // content of input buffer
-    // int position = inBuffer.position();
-    // inBuffer.rewind();
-    // byte[] data = new byte[inBuffer.limit()];
-    // inBuffer.get(data);
-    // inBuffer.position(position);
-    // logger.info("{} - Data in input buffer: {}", toString(), SimaticProtocol.arrayToString(data, data.length));
-    //
-    // if (lastSentData != null) {
-    // // last data out
-    // logger.info("{} - Last sent data: {}", toString(),
-    // SimaticProtocol.arrayToString(lastSentData.getData(), lastSentData.getData().length));
-    // }
-    // } catch (ModeChangeException e) {
-    // logger.error(e.getMessage());
-    // }
-    // }
 
     /**
      * @see org.openhab.binding.SimaticIDevice.internal.SimaticIDevice#checkNewData()
@@ -509,7 +300,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
 
             readLock.lock();
 
-            for (SimaticReadWriteDataArea item : readAreasList.getData()) {
+            for (SimaticReadDataArea item : readAreasList.getData()) {
                 // Read data depend on connection type
             }
 
@@ -538,7 +329,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
             }
         });
 
-        SimaticReadWriteDataArea readDataArea = null;
+        SimaticReadDataArea readDataArea = null;
 
         // prepare read queues
         for (Map.Entry<String, SimaticBindingConfig> item : list) {
@@ -547,8 +338,8 @@ public class SimaticGenericDevice implements SimaticIDevice {
                 continue;
             }
 
-            if (readDataArea == null || readDataArea.isItemOutOfRange(item.getValue())) {
-                readDataArea = new SimaticReadWriteDataArea(item.getValue());
+            if (readDataArea == null || readDataArea.isItemOutOfRange(item.getValue().getAddress())) {
+                readDataArea = new SimaticReadDataArea(item.getValue());
                 readAreasList.put(readDataArea);
             } else {
                 try {
@@ -561,7 +352,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     }
 
     public void postValue(SimaticBindingConfig item, byte[] buffer, int position) {
-        ByteBuffer bb = ByteBuffer.wrap(buffer, position, item.getDataLenght());
+        ByteBuffer bb = ByteBuffer.wrap(buffer, position, item.getDataLength());
         State state = null;
         Class<?> itemclass = item.getOpenHabItem().getClass();
 
@@ -576,7 +367,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
 
         if (item.datatype == SimaticTypes.ARRAY) {
             if (itemclass.isAssignableFrom(StringItem.class)) {
-                String str = new String(buffer, position, item.getDataLenght());
+                String str = new String(buffer, position, item.getDataLength());
                 state = new StringType(str);
             } else {
                 logger.warn("{} - Incoming data item {} - Array is only supported for string item.", toString(),

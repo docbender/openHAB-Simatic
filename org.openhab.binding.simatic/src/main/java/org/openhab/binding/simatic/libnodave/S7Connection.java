@@ -271,6 +271,40 @@ public abstract class S7Connection {
     }
 
     /*
+     * Write bits to PLC memory area "area", data block DBnum.
+     */
+    public int writeBits(int area, int DBnum, int start, int len, byte[] buffer) {
+        int errorState = 0;
+        semaphore.enter();
+        PDU p1 = new PDU(msgOut, PDUstartOut);
+
+        // p1.constructWriteRequest(area, DBnum, start, len, buffer);
+        p1.prepareWriteRequest();
+        p1.addBitVarToWriteRequest(area, DBnum, start, len, buffer);
+
+        errorState = exchange(p1);
+
+        if (errorState == 0) {
+            PDU p2 = new PDU(msgIn, PDUstartIn);
+            p2.setupReceivedPDU();
+
+            if (p2.mem[p2.param + 0] == PDU.FUNC_WRITE) {
+                if (p2.mem[p2.data + 0] == (byte) 0xFF) {
+                    if ((Nodave.Debug & Nodave.DEBUG_CONN) != 0) {
+                        System.out.println("writeBytes: success");
+                    }
+                    semaphore.leave();
+                    return 0;
+                }
+            } else {
+                errorState |= 4096;
+            }
+        }
+        semaphore.leave();
+        return errorState;
+    }
+
+    /*
      * public int readByteBlock(int area, int areaNumber, int start, int len) {
      * return readBytes(area, areaNumber, start, len, null);
      * }

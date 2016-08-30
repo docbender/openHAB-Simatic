@@ -381,7 +381,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
          *
          * @return
          */
-        public int getDataLenght() {
+        public int getDataLength() {
             return address.getDataLength();
         }
 

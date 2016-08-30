@@ -190,12 +190,29 @@ public class SimaticTCP extends SimaticGenericDevice {
      *            Item data with compiled packet
      */
     @Override
-    protected boolean sendDataOut(SimaticItemData data) {
+    protected boolean sendDataOut(SimaticWriteDataArea data) {
         if (logger.isDebugEnabled()) {
             logger.debug("{} - Sending data to device", this.toString());
         }
 
-        return false;
+        if (data.getAddress().getSimaticDataType() != SimaticPLCDataTypes.BIT) {
+            int result = dc.writeBytes(data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
+                    data.getAddressSpaceLength(), data.getData());
+            if (result != 0) {
+                logger.warn("{} - Write data area error (Result={},Area={})", toString(), result, data.toString());
+                return false;
+            }
+        } else {
+            int result = dc.writeBits(data.getAreaIntFormat(), data.getDBNumber(),
+                    8 * data.getAddress().getByteOffset() + data.getAddress().getBitOffset(),
+                    data.getAddressSpaceLength(), data.getData());
+            if (result != 0) {
+                logger.warn("{} - Write data area error (Result={},Area={})", toString(), result, data.toString());
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -218,11 +235,11 @@ public class SimaticTCP extends SimaticGenericDevice {
 
             readLock.lock();
 
-            for (SimaticReadWriteDataArea area : readAreasList.getData()) {
-                byte[] buffer = new byte[area.getAddressSpaceLenght()];
+            for (SimaticReadDataArea area : readAreasList.getData()) {
+                byte[] buffer = new byte[area.getAddressSpaceLength()];
 
                 if (dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
-                        area.getAddressSpaceLenght(), buffer) != 0) {
+                        area.getAddressSpaceLength(), buffer) != 0) {
                     logger.warn("{} - Read data area error ({})", toString(), area.toString());
                     continue;
                 }

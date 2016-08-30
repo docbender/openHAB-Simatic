@@ -263,6 +263,10 @@ public class SimaticPLCAddress implements Comparable {
         return dataLength;
     }
 
+    public SimaticPLCDataTypes getSimaticDataType() {
+        return dataType;
+    }
+
     @Override
     public String toString() {
         if (area == SimaticPLCAreaTypes.DB) {
