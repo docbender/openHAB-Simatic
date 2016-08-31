@@ -57,9 +57,9 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                     PercentType cmd = (PercentType) command;
                     data = new byte[] { cmd.byteValue() };
 
-                    if (config.getClass().isAssignableFrom(DimmerItem.class)) {
+                    if (config.getOpenHabItem().getClass().isAssignableFrom(DimmerItem.class)) {
                         ((DimmerItem) config.item).setState(new PercentType(cmd.byteValue()));
-                    } else if (config.getClass().isAssignableFrom(RollershutterItem.class)) {
+                    } else if (config.getOpenHabItem().getClass().isAssignableFrom(RollershutterItem.class)) {
                         ((RollershutterItem) config.item).setState(new PercentType(cmd.byteValue()));
                     }
                 } else if (command instanceof DecimalType) {
@@ -75,13 +75,13 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                 } else if (command instanceof OnOffType) {
                     OnOffType cmd = (OnOffType) command;
 
-                    if (config.getClass().isAssignableFrom(SwitchItem.class)) {
+                    if (config.getOpenHabItem().getClass().isAssignableFrom(SwitchItem.class)) {
                         if (cmd == OnOffType.ON) {
                             data = new byte[] { 1 };
                         } else {
                             data = new byte[] { 0 };
                         }
-                    } else if (config.getClass().isAssignableFrom(DimmerItem.class)) {
+                    } else if (config.getOpenHabItem().getClass().isAssignableFrom(DimmerItem.class)) {
                         if (cmd == OnOffType.ON) {
                             PercentType val = ((PercentType) (config.item).getStateAs(PercentType.class));
                             if (val == null) {
@@ -100,7 +100,7 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                     }
 
                 } else if (command instanceof IncreaseDecreaseType
-                        && config.getClass().isAssignableFrom(DimmerItem.class)) {
+                        && config.getOpenHabItem().getClass().isAssignableFrom(DimmerItem.class)) {
                     if (logger.isDebugEnabled()) {
                         logger.debug("IncreaseDecreaseType - DimmerItem");
                     }
@@ -141,16 +141,16 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
             case WORD:
                 if (command instanceof PercentType) {
                     PercentType cmd = (PercentType) command;
-                    data = new byte[] { cmd.byteValue(), 0x0 };
+                    data = new byte[] { 0x0, cmd.byteValue() };
                 } else if (command instanceof DecimalType) {
                     DecimalType cmd = (DecimalType) command;
-                    data = new byte[] { (byte) (cmd.intValue() & 0xFF), (byte) ((cmd.intValue() >> 8) & 0xFF) };
+                    data = new byte[] { (byte) ((cmd.intValue() >> 8) & 0xFF), (byte) (cmd.intValue() & 0xFF) };
                 } else if (command instanceof StopMoveType) {
                     StopMoveType cmd = (StopMoveType) command;
-                    data = new byte[] { 0x0, (byte) (cmd.equals(StopMoveType.MOVE) ? 0x1 : 0x2) };
+                    data = new byte[] { (byte) (cmd.equals(StopMoveType.MOVE) ? 0x1 : 0x2), 0x0 };
                 } else if (command instanceof UpDownType) {
                     UpDownType cmd = (UpDownType) command;
-                    data = new byte[] { 0x0, (byte) (cmd.equals(UpDownType.UP) ? 0x4 : 0x8) };
+                    data = new byte[] { (byte) (cmd.equals(UpDownType.UP) ? 0x4 : 0x8), 0x0 };
                 } else {
                     logger.error("Unsupported command type {} for datatype {}", command.getClass().toString(),
                             config.getDataType());
@@ -160,8 +160,8 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
             case DWORD:
                 if (command instanceof DecimalType) {
                     DecimalType cmd = (DecimalType) command;
-                    data = new byte[] { (byte) (cmd.intValue() & 0xFF), (byte) ((cmd.intValue() >> 8) & 0xFF),
-                            (byte) ((cmd.intValue() >> 16) & 0xFF), (byte) ((cmd.intValue() >> 24) & 0xFF) };
+                    data = new byte[] { (byte) ((cmd.intValue() >> 24) & 0xFF), (byte) ((cmd.intValue() >> 16) & 0xFF),
+                            (byte) ((cmd.intValue() >> 8) & 0xFF), (byte) (cmd.intValue() & 0xFF) };
                 } else {
                     logger.error("Unsupported command type {} for datatype {}", command.getClass().toString(),
                             config.getDataType());
@@ -174,8 +174,8 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                     float value = cmd.floatValue();
                     int bits = Float.floatToIntBits(value);
 
-                    data = new byte[] { (byte) (bits & 0xFF), (byte) ((bits >> 8) & 0xFF), (byte) ((bits >> 16) & 0xFF),
-                            (byte) ((bits >> 24) & 0xFF) };
+                    data = new byte[] { (byte) ((bits >> 24) & 0xFF), (byte) ((bits >> 16) & 0xFF),
+                            (byte) ((bits >> 8) & 0xFF), (byte) (bits & 0xFF) };
                 } else {
                     logger.error("Unsupported command type {} for datatype {}", command.getClass().toString(),
                             config.getDataType());
@@ -260,8 +260,8 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                     HSBType cmd = hsbVal;
 
                     if (config.getDataType() == SimaticTypes.HSB) {
-                        data = new byte[] { cmd.getHue().byteValue(), cmd.getSaturation().byteValue(),
-                                cmd.getBrightness().byteValue(), 0x0 };
+                        data = new byte[] { 0x0, cmd.getBrightness().byteValue(), cmd.getSaturation().byteValue(),
+                                cmd.getHue().byteValue() };
                     } else if (config.getDataType() == SimaticTypes.RGB) {
                         long red = Math.round((cmd.getRed().doubleValue() * 2.55));
                         long green = Math.round((cmd.getGreen().doubleValue() * 2.55));
@@ -281,7 +281,7 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                             logger.debug("         Converted to 0-255: Red={} Green={} Blue={}", red, green, blue);
                         }
 
-                        data = new byte[] { (byte) (red & 0xFF), (byte) (green & 0xFF), (byte) (blue & 0xFF), 0x0 };
+                        data = new byte[] { 0x0, (byte) (blue & 0xFF), (byte) (green & 0xFF), (byte) (red & 0xFF) };
                     } else if (config.getDataType() == SimaticTypes.RGBW) {
                         long red = Math.round((cmd.getRed().doubleValue() * 2.55));
                         long green = Math.round((cmd.getGreen().doubleValue() * 2.55));
@@ -313,7 +313,7 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                                     green & 0xFF, blue & 0xFF, white & 0xFF);
                         }
 
-                        data = new byte[] { (byte) (red & 0xFF), (byte) (green & 0xFF), (byte) (blue & 0xFF), white };
+                        data = new byte[] { white, (byte) (blue & 0xFF), (byte) (green & 0xFF), (byte) (red & 0xFF) };
                     }
                 }
 
@@ -469,7 +469,7 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
     public boolean isItemOutOfRange(SimaticPLCAddress itemAddress) {
         // must be in area, eventually same DB, not bit, without any space between data, in max frame size
         return itemAddress.getArea() != this.getArea()
-                || (this.getArea() == SimaticPLCAreaTypes.DB && (address.DBNum != itemAddress.DBNum))
+                || (this.getArea() == SimaticPLCAreaTypes.DB && !address.DBNum.equals(itemAddress.DBNum))
                 || itemAddress.getSimaticDataType() == SimaticPLCDataTypes.BIT
                 || this.address.getSimaticDataType() == SimaticPLCDataTypes.BIT
                 || (itemAddress.addressByte > (this.address.addressByte + this.address.getDataLength()))

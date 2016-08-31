@@ -43,22 +43,6 @@ public class SimaticPLCAddress implements Comparable {
         prepareAddress();
     }
 
-    // public int getDaveArea() {
-    // switch (area) {
-    // case M:
-    // return libnodave.daveFlags;
-    // case DB:
-    // return libnodave.daveDB;
-    // case I:
-    // return libnodave.daveInputs;
-    // case Q:
-    // return libnodave.daveOutputs;
-    // case UNKNOWN_AREA:
-    // default:
-    // return -1;
-    // }
-    // }
-
     public int getByteOffset() {
         return addressByte;
     }
@@ -90,7 +74,17 @@ public class SimaticPLCAddress implements Comparable {
     }
 
     /**
-     * Prepare simatic address from string representation
+     * Create Simatic address instance
+     *
+     * @return Returns address
+     */
+    public static SimaticPLCAddress create(String address) {
+
+        return new SimaticPLCAddress(address);
+    }
+
+    /**
+     * Prepare Simatic address from string representation
      *
      * @return Returns datatype length [bytes]
      */
@@ -217,7 +211,7 @@ public class SimaticPLCAddress implements Comparable {
                     return 2;
                 } else if (tmp.startsWith("DBB")) {
                     addressByte = Integer.parseInt(tmp.substring(3));
-                    dataType = SimaticPLCDataTypes.WORD;
+                    dataType = SimaticPLCDataTypes.BYTE;
                     return 1;
                 } else if (tmp.startsWith("DBX")) {
                     if (items.length < 3) {
@@ -254,9 +248,11 @@ public class SimaticPLCAddress implements Comparable {
         int areaResult = this.area.compareTo(obj.area);
         int dbResult = this.DBNum.compareTo(obj.DBNum);
         int addrResult = this.addressByte.compareTo(obj.addressByte);
+        int lenresult = this.dataLength.compareTo(obj.dataLength);
 
-        return areaResult == 0 ? (dbResult == 0
-                ? (addrResult == 0 ? this.addressBit.compareTo(obj.addressBit) : addrResult) : dbResult) : areaResult;
+        return areaResult == 0 ? (dbResult == 0 ? (addrResult == 0
+                ? (lenresult == 0 ? this.addressBit.compareTo(obj.addressBit) : lenresult) : addrResult) : dbResult)
+                : areaResult;
     }
 
     public int getDataLength() {

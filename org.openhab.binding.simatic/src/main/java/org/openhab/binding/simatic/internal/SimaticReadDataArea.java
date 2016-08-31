@@ -25,10 +25,13 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
 
     LinkedList<SimaticBindingConfig> items = new LinkedList<SimaticBindingConfig>();
     final SimaticPLCAddress startAddress;
+    int areaLength = 0;
 
     public SimaticReadDataArea(SimaticBindingConfig firstItem) {
         startAddress = firstItem.getAddress();
         items.add(firstItem);
+
+        areaLength = startAddress.getDataLength();
     }
 
     @Override
@@ -66,8 +69,11 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
 
     @Override
     public int getAddressSpaceLength() {
-        return items.getLast().getAddress().getByteOffset() + items.getLast().getDataLength()
-                - startAddress.getByteOffset();
+        return areaLength;
+    }
+
+    private int getEndByteOffset() {
+        return startAddress.getByteOffset() + areaLength;
     }
 
     public void addItem(SimaticBindingConfig item) throws Exception {
@@ -76,13 +82,40 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
         }
 
         items.add(item);
+
+        int endAddress = startAddress.getByteOffset();
+
+        for (SimaticBindingConfig i : items) {
+            int itemEnd = i.getAddress().getByteOffset() + i.getAddress().getDataLength();
+            if (itemEnd > endAddress) {
+                endAddress = itemEnd;
+            }
+        }
+
+        areaLength = endAddress - startAddress.getByteOffset();
     }
 
     @Override
     public boolean isItemOutOfRange(SimaticPLCAddress itemAddress) {
+        // Logger logger = LoggerFactory.getLogger(SimaticPLCAddress.class);
+        //
+        // logger.info("This address: {}------------------", this.startAddress.toString());
+        // logger.info("New address: {}------------------", itemAddress.toString());
+        //
+        // logger.debug("Area{}/{} = {}", itemAddress.getArea(), this.getArea(), itemAddress.getArea() !=
+        // this.getArea());
+        // logger.debug("DB{}/{} = {}", startAddress.DBNum, itemAddress.DBNum,
+        // (this.getArea() == SimaticPLCAreaTypes.DB && !startAddress.DBNum.equals(itemAddress.DBNum)));
+        // logger.debug("Address{}/{} = {}", (itemAddress.addressByte + itemAddress.getDataLength()),
+        // this.startAddress.addressByte, (itemAddress.addressByte + itemAddress.getDataLength()
+        // - this.startAddress.addressByte > MAX_DATA_LENGTH));
+        // logger.debug("Gap{}/{} = {}", itemAddress.addressByte,
+        // (this.startAddress.addressByte + this.getAddressSpaceLength()),
+        // (itemAddress.addressByte - (this.startAddress.addressByte + this.getAddressSpaceLength()) > GAP_LIMIT));
+
         // must be in area, eventually same DB, in range of maximal frame size and in defined gap space
         return itemAddress.getArea() != this.getArea()
-                || (this.getArea() == SimaticPLCAreaTypes.DB && (startAddress.DBNum != itemAddress.DBNum))
+                || (this.getArea() == SimaticPLCAreaTypes.DB && !startAddress.DBNum.equals(itemAddress.DBNum))
                 || (itemAddress.addressByte + itemAddress.getDataLength()
                         - this.startAddress.addressByte > MAX_DATA_LENGTH)
                 || (itemAddress.addressByte
@@ -93,10 +126,9 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
     public String toString() {
         if (getArea() == SimaticPLCAreaTypes.DB) {
             return "DB" + getDBNumber() + ".DBB" + getStartAddress() + "-DB" + getDBNumber() + ".DBB"
-                    + items.getLast().getAddress().getByteOffset() + items.getLast().getDataLength();
+                    + getEndByteOffset();
         } else {
-            return getArea().toString() + getStartAddress() + "-" + getArea().toString()
-                    + items.getLast().getAddress().getByteOffset() + items.getLast().getDataLength();
+            return getArea().toString() + getStartAddress() + "-" + getArea().toString() + getEndByteOffset();
         }
     }
 

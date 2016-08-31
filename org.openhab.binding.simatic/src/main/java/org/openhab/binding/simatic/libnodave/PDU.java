@@ -178,7 +178,7 @@ public class PDU {
      * pa[3] = (byte) 0x0a;
      * pa[4] = (byte) 0x10;
      * pa[5] = (byte) 0x02;
-     * 
+     *
      * Nodave.setUSBEWord(pa, 6, len);
      * Nodave.setUSBEWord(pa, 8, DBnum);
      * Nodave.setUSBELong(pa, 10, 8 * start); // the bit address
@@ -273,7 +273,7 @@ public class PDU {
         }
         if (mem[data + 1] == 4) { // bit data, length is in bits
             valCount += 8 * values.length;
-        } else if (mem[data + 1] == 9) { // byte data, length is in bytes
+        } else if (mem[data + 1] == 9 || mem[data + 1] == 3) { // byte data, length is in bytes
             valCount += values.length;
         } else {
             if ((Nodave.Debug & Nodave.DEBUG_PDU) != 0) {
@@ -328,8 +328,8 @@ public class PDU {
         return res;
     }
 
-    /*		
-    		
+    /*
+    
     */
     int testResultData() {
         int res = Nodave.RESULT_CANNOT_EVALUATE_PDU; // just assume the worst
@@ -486,7 +486,7 @@ public class PDU {
         pa[8] = (byte) area;
         pa[11] = (byte) (start & 0xff);
         pa[10] = (byte) ((start / 0x100) & 0xff);
-        pa[9] = (byte) (start / 0x10000);
+        pa[9] = (byte) ((start / 0x10000) & 0xff);
 
         if ((dlen % 2) != 0) {
             addData(da, 1);
@@ -509,9 +509,9 @@ public class PDU {
             dump();
         }
 
-        if ((Nodave.Debug & Nodave.DEBUG_PDU) != 0) {
-            dump();
-        }
+        // if ((Nodave.Debug & Nodave.DEBUG_PDU) != 0) {
+        // dump();
+        // }
     }
 
 }

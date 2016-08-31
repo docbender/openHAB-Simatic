@@ -105,7 +105,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
         //
         // Matcher matcher =
         // Pattern.compile("^(port\\d*):(\\d+):(\\d+):([a-z0-9\\[\\]]+):(I|O|IO)$").matcher(bindingConfig);
-        Matcher matcher = Pattern.compile("^(plc\\d*):([I|O|A|E|M|D|B|X|W|D0-9.]+)((:[a-zA-Z0-9_]*)*)$")
+        Matcher matcher = Pattern.compile("^(plc\\d*):([I|Q|A|E|M|D|B|X|W|D0-9.]+)((:[a-zA-Z0-9_]*)*)$")
                 .matcher(bindingConfig);
 
         if (!matcher.matches()) {
@@ -155,7 +155,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
                 direction = resolveConfigDirection(matcher.group(3));
 
                 if (dataType == null) {
-                    dataType = resolveDataTypeFromItemType(item);
+                    dataType = resolveDataTypeFromItemType(item, address);
                 }
 
                 if (dataType == SimaticTypes.ARRAY) {
@@ -165,7 +165,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
                     config = new SimaticBindingConfig(item, device, address, dataType, direction);
                 }
             } else {
-                dataType = resolveDataTypeFromItemType(item);
+                dataType = resolveDataTypeFromItemType(item, address);
 
                 config = new SimaticBindingConfig(item, device, address, dataType);
             }
@@ -304,12 +304,18 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
         return null;
     }
 
-    SimaticTypes resolveDataTypeFromItemType(Item item) throws BindingConfigParseException {
+    SimaticTypes resolveDataTypeFromItemType(Item item, String address) throws BindingConfigParseException {
         Class<? extends Item> itemType = item.getClass();
 
         if (itemType.isAssignableFrom(NumberItem.class)) {
-            logger.warn("Item %s has not specified datatype. Setted to WORD.", item.getName());
-            return SimaticTypes.WORD;
+            switch (SimaticPLCAddress.create(address).dataType) {
+                case DWORD:
+                    return SimaticTypes.DWORD;
+                case WORD:
+                    return SimaticTypes.WORD;
+                default:
+                    return SimaticTypes.BYTE;
+            }
         } else if (itemType.isAssignableFrom(SwitchItem.class)) {
             return SimaticTypes.BYTE;
         } else if (itemType.isAssignableFrom(DimmerItem.class)) {

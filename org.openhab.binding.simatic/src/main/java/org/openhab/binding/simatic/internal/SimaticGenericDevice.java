@@ -349,21 +349,32 @@ public class SimaticGenericDevice implements SimaticIDevice {
                 }
             }
         }
+
+        logger.debug("readAreas:");
+
+        for (SimaticReadDataArea i : readAreasList.getData()) {
+            logger.debug(i.toString());
+        }
     }
 
     public void postValue(SimaticBindingConfig item, byte[] buffer, int position) {
+        // logger.debug("item={}", item.toString());
+        // logger.debug("buffer={}", buffer.length);
+        // logger.debug("position={}", position);
+        // logger.debug("item len={}", item.getDataLength());
+
         ByteBuffer bb = ByteBuffer.wrap(buffer, position, item.getDataLength());
         State state = null;
         Class<?> itemclass = item.getOpenHabItem().getClass();
 
-        logger.info("postvalue Class=" + itemclass.toString());
+        // logger.info("postvalue Class=" + itemclass.toString());
 
         // no byte swap for array
-        if (item.datatype == SimaticTypes.ARRAY) {
-            bb.order(ByteOrder.BIG_ENDIAN);
-        } else {
-            bb.order(ByteOrder.LITTLE_ENDIAN);
-        }
+        // if (item.datatype == SimaticTypes.ARRAY) {
+        bb.order(ByteOrder.BIG_ENDIAN);
+        // } else {
+        // bb.order(ByteOrder.LITTLE_ENDIAN);
+        // }
 
         if (item.datatype == SimaticTypes.ARRAY) {
             if (itemclass.isAssignableFrom(StringItem.class)) {
@@ -407,7 +418,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
                     int intValue = 0;
 
                     if (item.address.dataType == SimaticPLCDataTypes.BIT) {
-                        intValue = ((bb.get() & (2 ^ item.getAddress().getBitOffset())) != 0 ? 1 : 0);
+                        intValue = (bb.get() & (int) Math.pow(2, item.getAddress().getBitOffset())) != 0 ? 1 : 0;
                     } else if (item.address.dataType == SimaticPLCDataTypes.BYTE) {
                         intValue = bb.get();
                     } else if (item.address.dataType == SimaticPLCDataTypes.WORD) {

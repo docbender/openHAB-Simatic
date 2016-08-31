@@ -196,6 +196,19 @@ public class SimaticTCP extends SimaticGenericDevice {
         }
 
         if (data.getAddress().getSimaticDataType() != SimaticPLCDataTypes.BIT) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("{} - writeBytes(area={},db={},adr={},len={}, data={})", this.toString(),
+                        data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
+                        data.getAddressSpaceLength(), data.getData().length);
+
+                String datastring = "";
+                for (byte b : data.getData()) {
+                    datastring += b + ",";
+                }
+
+                logger.debug(datastring);
+            }
+
             int result = dc.writeBytes(data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
                     data.getAddressSpaceLength(), data.getData());
             if (result != 0) {
@@ -203,6 +216,19 @@ public class SimaticTCP extends SimaticGenericDevice {
                 return false;
             }
         } else {
+            if (logger.isDebugEnabled()) {
+                logger.debug("{} - writeBits(area={},db={},adr={},len={}, data={})", this.toString(),
+                        data.getAreaIntFormat(), data.getDBNumber(),
+                        8 * data.getAddress().getByteOffset() + data.getAddress().getBitOffset(),
+                        data.getAddressSpaceLength(), data.getData().length);
+
+                String datastring = "";
+                for (byte b : data.getData()) {
+                    datastring += b + ",";
+                }
+
+                logger.debug(datastring);
+            }
             int result = dc.writeBits(data.getAreaIntFormat(), data.getDBNumber(),
                     8 * data.getAddress().getByteOffset() + data.getAddress().getBitOffset(),
                     data.getAddressSpaceLength(), data.getData());
@@ -244,9 +270,16 @@ public class SimaticTCP extends SimaticGenericDevice {
                     continue;
                 }
 
+                if (logger.isDebugEnabled()) {
+                    logger.debug("{} - Reading finished. Area={}", toString(), area.toString());
+                }
+
                 int start = area.getStartAddress();
 
                 for (SimaticBindingConfig item : area.getItems()) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("{} - PostValue for item={}", toString(), item.toString());
+                    }
                     this.postValue(item, buffer, item.getAddress().getByteOffset() - start);
                 }
             }
