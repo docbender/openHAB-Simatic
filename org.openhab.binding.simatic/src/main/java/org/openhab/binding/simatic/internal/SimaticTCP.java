@@ -212,7 +212,12 @@ public class SimaticTCP extends SimaticGenericDevice {
             int result = dc.writeBytes(data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
                     data.getAddressSpaceLength(), data.getData());
             if (result != 0) {
-                logger.warn("{} - Write data area error (Result={},Area={})", toString(), result, data.toString());
+                logger.error("{} - Write data area error (Area={}, Result=0x{}, Error={})", toString(), data.toString(),
+                        Integer.toHexString(result), Nodave.strerror(result));
+
+                if (result == Nodave.RESULT_UNEXPECTED_FUNC) {
+                    tryReconnect.set(true);
+                }
                 return false;
             }
         } else {
@@ -233,7 +238,12 @@ public class SimaticTCP extends SimaticGenericDevice {
                     8 * data.getAddress().getByteOffset() + data.getAddress().getBitOffset(),
                     data.getAddressSpaceLength(), data.getData());
             if (result != 0) {
-                logger.warn("{} - Write data area error (Result={},Area={})", toString(), result, data.toString());
+                logger.error("{} - Write data area error (Area={}, Result=0x{}, Error={})", toString(), data.toString(),
+                        Integer.toHexString(result), Nodave.strerror(result));
+
+                if (result == Nodave.RESULT_UNEXPECTED_FUNC) {
+                    tryReconnect.set(true);
+                }
                 return false;
             }
         }
@@ -264,10 +274,19 @@ public class SimaticTCP extends SimaticGenericDevice {
             for (SimaticReadDataArea area : readAreasList.getData()) {
                 byte[] buffer = new byte[area.getAddressSpaceLength()];
 
-                if (dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
-                        area.getAddressSpaceLength(), buffer) != 0) {
-                    logger.warn("{} - Read data area error ({})", toString(), area.toString());
-                    continue;
+                int result = dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
+                        area.getAddressSpaceLength(), buffer);
+
+                if (result != 0) {
+                    logger.error("{} - Read data area error (Area={}, Return code=0x{}, Error={})", toString(),
+                            area.toString(), Integer.toHexString(result), Nodave.strerror(result));
+
+                    if (result == Nodave.RESULT_UNEXPECTED_FUNC) {
+                        tryReconnect.set(true);
+                        break;
+                    } else {
+                        continue;
+                    }
                 }
 
                 if (logger.isDebugEnabled()) {

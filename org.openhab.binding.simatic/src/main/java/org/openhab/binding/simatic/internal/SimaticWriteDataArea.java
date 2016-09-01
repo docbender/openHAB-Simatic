@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  *
- * Class holding item data
+ * Class holding single write data request
  *
  * @author Vita Tucek
  * @since 1.9.0

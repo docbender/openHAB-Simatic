@@ -205,6 +205,10 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
         if (devices != null && devices.size() > 0) {
             // go through all devices
             for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
+                // should reconnect
+                if (item.getValue().shouldReconnect()) {
+                    item.getValue().reconnect();
+                }
                 // check device for new data
                 item.getValue().checkNewData();
             }

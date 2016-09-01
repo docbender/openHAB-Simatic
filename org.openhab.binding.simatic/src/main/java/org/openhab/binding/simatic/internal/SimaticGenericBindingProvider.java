@@ -95,16 +95,13 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
 
         // config
         //
-        // device:busAddress:address/ID:type:direction
+        // device:address:type:direction
         //
-        // device - target device/port (ex. "port" , "port1", "port2")
-        // device:busAddress - bus / device address (0-127)
-        // address/ID - number
+        // device - target device/port (ex. "plc" , "plc1", "plc2")
+        // address/ID - item address (ex. "MB0")
         // type - byte or word or dword or array[length] or rgb or rgbw or hsb
         // direction - "I" or "O" or "IO"
         //
-        // Matcher matcher =
-        // Pattern.compile("^(port\\d*):(\\d+):(\\d+):([a-z0-9\\[\\]]+):(I|O|IO)$").matcher(bindingConfig);
         Matcher matcher = Pattern.compile("^(plc\\d*):([I|Q|A|E|M|D|B|X|W|D0-9.]+)((:[a-zA-Z0-9_]*)*)$")
                 .matcher(bindingConfig);
 

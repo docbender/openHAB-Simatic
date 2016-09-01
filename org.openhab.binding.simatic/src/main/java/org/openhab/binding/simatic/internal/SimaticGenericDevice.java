@@ -14,9 +14,11 @@ import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -73,6 +75,8 @@ public class SimaticGenericDevice implements SimaticIDevice {
     protected final Lock readLock = new ReentrantLock();
     /** Read PLC areas **/
     protected SimaticReadQueue readAreasList = new SimaticReadQueue();
+    /** try reconnect flag when read/write function failure **/
+    protected AtomicBoolean tryReconnect = new AtomicBoolean(false);
 
     public enum ProcessDataResult {
         OK,
@@ -108,7 +112,30 @@ public class SimaticGenericDevice implements SimaticIDevice {
     public void setBindingData(EventPublisher eventPublisher, Map<String, SimaticBindingConfig> itemsConfig,
             Map<String, SimaticInfoBindingConfig> itemsInfoConfig) {
         this.eventPublisher = eventPublisher;
-        this.itemsConfig = itemsConfig;
+
+        // device item list
+        List<Map.Entry<String, SimaticBindingConfig>> list = new LinkedList<Map.Entry<String, SimaticBindingConfig>>();
+
+        for (Map.Entry<String, SimaticBindingConfig> item : itemsConfig.entrySet()) {
+            if (item.getValue().device.equals(this.deviceName)) {
+                list.add(item);
+            }
+        }
+
+        // sort by address
+        Collections.sort(list, new Comparator<Map.Entry<String, SimaticBindingConfig>>() {
+            @Override
+            public int compare(Map.Entry<String, SimaticBindingConfig> o1, Map.Entry<String, SimaticBindingConfig> o2) {
+                return (o1.getValue().address).compareTo(o2.getValue().address);
+            }
+        });
+
+        Map<String, SimaticBindingConfig> deviceItems = new LinkedHashMap<String, SimaticBindingConfig>();
+        for (Map.Entry<String, SimaticBindingConfig> entry : list) {
+            deviceItems.put(entry.getKey(), entry.getValue());
+        }
+
+        this.itemsConfig = deviceItems;
 
         this.portState.setBindingData(eventPublisher, itemsInfoConfig, this.deviceName);
     }
@@ -158,7 +185,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     /**
      * Reconnect device
      */
-    private void reconnect() {
+    public void reconnect() {
         logger.info("{}: Trying to reconnect", toString());
 
         close();
@@ -313,26 +340,29 @@ public class SimaticGenericDevice implements SimaticIDevice {
         return "DeviceID " + deviceID;
     }
 
+    /**
+     * After item configuration is loaded this method prepare reading areas for this device
+     */
     public void prepareData() {
         if (itemsConfig == null) {
             return;
         }
 
-        // sort items by address
-        List<Map.Entry<String, SimaticBindingConfig>> list = new LinkedList<Map.Entry<String, SimaticBindingConfig>>(
-                itemsConfig.entrySet());
-
-        Collections.sort(list, new Comparator<Map.Entry<String, SimaticBindingConfig>>() {
-            @Override
-            public int compare(Map.Entry<String, SimaticBindingConfig> o1, Map.Entry<String, SimaticBindingConfig> o2) {
-                return (o1.getValue().address).compareTo(o2.getValue().address);
-            }
-        });
+        // // sort items by address
+        // List<Map.Entry<String, SimaticBindingConfig>> list = new LinkedList<Map.Entry<String, SimaticBindingConfig>>(
+        // itemsConfig.entrySet());
+        //
+        // Collections.sort(list, new Comparator<Map.Entry<String, SimaticBindingConfig>>() {
+        // @Override
+        // public int compare(Map.Entry<String, SimaticBindingConfig> o1, Map.Entry<String, SimaticBindingConfig> o2) {
+        // return (o1.getValue().address).compareTo(o2.getValue().address);
+        // }
+        // });
 
         SimaticReadDataArea readDataArea = null;
 
         // prepare read queues
-        for (Map.Entry<String, SimaticBindingConfig> item : list) {
+        for (Map.Entry<String, SimaticBindingConfig> item : itemsConfig.entrySet()) {
             // no data with output direction
             if (item.getValue().direction == 2) {
                 continue;
@@ -350,13 +380,20 @@ public class SimaticGenericDevice implements SimaticIDevice {
             }
         }
 
-        logger.debug("readAreas:");
+        logger.debug("{} - readAreas:", this.toString());
 
         for (SimaticReadDataArea i : readAreasList.getData()) {
             logger.debug(i.toString());
         }
     }
 
+    /**
+     * Method decode incoming data and on success post this into openHAB
+     *
+     * @param item
+     * @param buffer
+     * @param position
+     */
     public void postValue(SimaticBindingConfig item, byte[] buffer, int position) {
         // logger.debug("item={}", item.toString());
         // logger.debug("buffer={}", buffer.length);
@@ -366,8 +403,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
         ByteBuffer bb = ByteBuffer.wrap(buffer, position, item.getDataLength());
         State state = null;
         Class<?> itemclass = item.getOpenHabItem().getClass();
-
-        // logger.info("postvalue Class=" + itemclass.toString());
 
         // no byte swap for array
         // if (item.datatype == SimaticTypes.ARRAY) {
@@ -456,6 +491,12 @@ public class SimaticGenericDevice implements SimaticIDevice {
         postState(item.getName(), state);
     }
 
+    /**
+     * Method post item state into openHAB
+     *
+     * @param itemName
+     * @param state
+     */
     public void postState(String itemName, State state) {
         if (state == null) {
             logger.warn("{} - Incoming data item {} - Unknown  state", toString(), itemName);
@@ -469,4 +510,9 @@ public class SimaticGenericDevice implements SimaticIDevice {
             }
         }
     }
+
+    public boolean shouldReconnect() {
+        return tryReconnect.get();
+    }
+
 }
