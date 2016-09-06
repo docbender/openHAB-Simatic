@@ -141,16 +141,16 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
             case WORD:
                 if (command instanceof PercentType) {
                     PercentType cmd = (PercentType) command;
-                    data = new byte[] { 0x0, cmd.byteValue() };
+                    data = new byte[] { cmd.byteValue(), 0x0 };
                 } else if (command instanceof DecimalType) {
                     DecimalType cmd = (DecimalType) command;
                     data = new byte[] { (byte) ((cmd.intValue() >> 8) & 0xFF), (byte) (cmd.intValue() & 0xFF) };
                 } else if (command instanceof StopMoveType) {
                     StopMoveType cmd = (StopMoveType) command;
-                    data = new byte[] { (byte) (cmd.equals(StopMoveType.MOVE) ? 0x1 : 0x2), 0x0 };
+                    data = new byte[] { 0x0, (byte) (cmd.equals(StopMoveType.MOVE) ? 0x1 : 0x2) };
                 } else if (command instanceof UpDownType) {
                     UpDownType cmd = (UpDownType) command;
-                    data = new byte[] { (byte) (cmd.equals(UpDownType.UP) ? 0x4 : 0x8), 0x0 };
+                    data = new byte[] { 0x0, (byte) (cmd.equals(UpDownType.UP) ? 0x4 : 0x8) };
                 } else {
                     logger.error("Unsupported command type {} for datatype {}", command.getClass().toString(),
                             config.getDataType());
@@ -260,8 +260,8 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                     HSBType cmd = hsbVal;
 
                     if (config.getDataType() == SimaticTypes.HSB) {
-                        data = new byte[] { 0x0, cmd.getBrightness().byteValue(), cmd.getSaturation().byteValue(),
-                                cmd.getHue().byteValue() };
+                        data = new byte[] { cmd.getHue().byteValue(), cmd.getSaturation().byteValue(),
+                                cmd.getBrightness().byteValue(), 0x0 };
                     } else if (config.getDataType() == SimaticTypes.RGB) {
                         long red = Math.round((cmd.getRed().doubleValue() * 2.55));
                         long green = Math.round((cmd.getGreen().doubleValue() * 2.55));
@@ -281,7 +281,7 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                             logger.debug("         Converted to 0-255: Red={} Green={} Blue={}", red, green, blue);
                         }
 
-                        data = new byte[] { 0x0, (byte) (blue & 0xFF), (byte) (green & 0xFF), (byte) (red & 0xFF) };
+                        data = new byte[] { (byte) (red & 0xFF), (byte) (green & 0xFF), (byte) (blue & 0xFF), 0x0 };
                     } else if (config.getDataType() == SimaticTypes.RGBW) {
                         long red = Math.round((cmd.getRed().doubleValue() * 2.55));
                         long green = Math.round((cmd.getGreen().doubleValue() * 2.55));
@@ -313,7 +313,7 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                                     green & 0xFF, blue & 0xFF, white & 0xFF);
                         }
 
-                        data = new byte[] { white, (byte) (blue & 0xFF), (byte) (green & 0xFF), (byte) (red & 0xFF) };
+                        data = new byte[] { (byte) (red & 0xFF), (byte) (green & 0xFF), (byte) (blue & 0xFF), white };
                     }
                 }
 

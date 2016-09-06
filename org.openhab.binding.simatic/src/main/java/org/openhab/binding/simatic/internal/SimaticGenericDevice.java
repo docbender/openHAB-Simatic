@@ -421,7 +421,8 @@ public class SimaticGenericDevice implements SimaticIDevice {
             }
         } else {
 
-            if (!itemclass.isAssignableFrom(SwitchItem.class) && itemclass.isAssignableFrom(ColorItem.class)) {
+            if (!itemclass.isAssignableFrom(SwitchItem.class) && !itemclass.isAssignableFrom(DimmerItem.class)
+                    && itemclass.isAssignableFrom(ColorItem.class)) {
                 if (item.address.dataType != SimaticPLCDataTypes.DWORD) {
                     logger.warn("{} - Incoming data item {} - Color item must have DWORD address", toString(),
                             item.getName());
@@ -479,7 +480,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
                             state = OpenClosedType.CLOSED;
                         }
                     } else if (itemclass.isAssignableFrom(RollershutterItem.class)) {
-                        state = new PercentType(intValue);
+                        state = new PercentType((intValue & 0xFF00) >> 8);
                     } else {
                         logger.warn("{} - Incoming data item {} - Class {} is not supported.", toString(),
                                 item.getName(), itemclass.toString());
