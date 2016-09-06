@@ -102,7 +102,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
         // type - byte or word or dword or array[length] or rgb or rgbw or hsb
         // direction - "I" or "O" or "IO"
         //
-        Matcher matcher = Pattern.compile("^(plc\\d*):([I|Q|A|E|M|D|B|X|W|D0-9.]+)((:[a-zA-Z0-9_]*)*)$")
+        Matcher matcher = Pattern.compile("^(plc\\d*):([I|Q|A|E|M|D|B|X|W|D0-9.]+)((:[a-zA-Z0-9\\[\\]_]*)*)$")
                 .matcher(bindingConfig);
 
         if (!matcher.matches()) {
@@ -199,7 +199,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
             // is datatype?
             if (!(param.equals("i") || param.equals("o") || param.equals("io"))) {
 
-                Matcher matcher = Pattern.compile("^array\\[\\d+\\]$").matcher(param);
+                Matcher matcher = Pattern.compile("^array\\[(\\d+)\\]$").matcher(param);
 
                 if (matcher.matches()) {
                     if (item.getClass().isAssignableFrom(StringItem.class)) {
@@ -247,16 +247,18 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
                         if (!param.equals("byte")) {
                             logger.warn("Item %s support datatype byte only. Type %s is ignored.", item.getName(),
                                     param);
+                            return null;
+                        } else {
+                            return SimaticBindingConfig.getDataType(param);
                         }
-                        return null;
-
                     } else if (item.getClass().isAssignableFrom(DimmerItem.class)) {
                         if (!param.equals("byte")) {
                             logger.warn("Item %s support datatype byte only. Type %s is ignored.", item.getName(),
                                     param);
+                            return null;
+                        } else {
+                            return SimaticBindingConfig.getDataType(param);
                         }
-                        return null;
-
                     } else if (item.getClass().isAssignableFrom(ColorItem.class)) {
                         if (!param.equals("rgb") && !param.equals("rgbw") && !param.equals("hsb")) {
                             logger.warn(
@@ -272,23 +274,28 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
                             logger.warn(
                                     "Item %s support datatype array only. Type %s is ignored. Setted to ARRAY with length 32.",
                                     item.getName(), param);
-                        }
-                        return null;
 
+                            return null;
+                        } else {
+                            return SimaticBindingConfig.getDataType(param);
+                        }
                     } else if (item.getClass().isAssignableFrom(ContactItem.class)) {
                         if (!param.equals("byte")) {
                             logger.warn("Item %s support datatype byte only. Type %s is ignored.", item.getName(),
                                     param);
+                            return null;
+                        } else {
+                            return SimaticBindingConfig.getDataType(param);
                         }
-                        return null;
 
                     } else if (item.getClass().isAssignableFrom(RollershutterItem.class)) {
                         if (!param.equals("word")) {
                             logger.warn("Item %s support datatype word only. Type %s is ignored.", item.getName(),
                                     param);
+                            return null;
+                        } else {
+                            return SimaticBindingConfig.getDataType(param);
                         }
-                        return null;
-
                     } else {
                         throw new BindingConfigParseException("Unsupported item type: " + item);
                     }
@@ -415,7 +422,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
             if (datatype.equals("float")) {
                 return SimaticTypes.FLOAT;
             }
-            if (datatype.equals("hsv")) {
+            if (datatype.equals("hsb")) {
                 return SimaticTypes.HSB;
             }
             if (datatype.equals("rgb")) {
