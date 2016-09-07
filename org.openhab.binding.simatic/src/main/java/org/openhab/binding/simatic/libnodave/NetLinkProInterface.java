@@ -22,6 +22,7 @@
 */
 package org.openhab.binding.simatic.libnodave;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -35,7 +36,7 @@ public class NetLinkProInterface extends PLCinterface {
     /*
      * Send a string of init data to the NetLinkPro adapter.
      */
-    int initStep(int nr, byte[] fix, int len, String initRoutine, byte[] buffer) {
+    int initStep(int nr, byte[] fix, int len, String initRoutine, byte[] buffer) throws IOException {
         int i;
         if ((Nodave.Debug & Nodave.DEBUG_INITADAPTER) != 0) {
             System.out.println(name + " step " + nr + "\n");
@@ -48,7 +49,7 @@ public class NetLinkProInterface extends PLCinterface {
 
     int sendWithCRCNLpro(byte[] b, /* a buffer containing the message */
             int size /* the size of the string */
-    ) {
+    ) throws IOException {
         byte[] target = new byte[Nodave.MAX_RAW_LEN];
         // uc target[daveMaxRawLen];
         int i, targetSize = 2;
@@ -67,7 +68,7 @@ public class NetLinkProInterface extends PLCinterface {
         return 0;
     }
 
-    int readMPINLpro(byte[] b) {
+    int readMPINLpro(byte[] b) throws IOException {
         int res, length;
         res = read(b, 0, 2);
         // res=read(di->fd.rfd, b, 2);

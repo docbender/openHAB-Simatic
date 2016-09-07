@@ -22,6 +22,8 @@
 */
 package org.openhab.binding.simatic.libnodave;
 
+import java.io.IOException;
+
 public class TCP243Connection extends TCPConnection {
 
     public TCP243Connection(PLCinterface ifa, int rack, int slot) {
@@ -29,7 +31,7 @@ public class TCP243Connection extends TCPConnection {
     }
 
     @Override
-    public int connectPLC() {
+    public int connectPLC() throws IOException {
         int res;
         byte[] b4CP243 = { (byte) 0x11, (byte) 0xE0, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00,
                 (byte) 0xC1, (byte) 0x02, (byte) 0x4D, (byte) 0x57, (byte) 0xC2, (byte) 0x02, (byte) 0x4D, (byte) 0x57,

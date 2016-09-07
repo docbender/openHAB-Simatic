@@ -121,7 +121,7 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
                 config.item = item;
                 config.device = matcher.group(1);
 
-                String param = matcher.group(3);
+                String param = matcher.group(2);
 
                 if (param.equalsIgnoreCase("state")) {
                     config.infoType = InfoType.STATE;
@@ -129,8 +129,8 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
                     config.infoType = InfoType.PREVIOUS_STATE;
                 } else if (param.equalsIgnoreCase("state_change_time")) {
                     config.infoType = InfoType.STATE_CHANGE_TIME;
-                } else if (param.equalsIgnoreCase("packet_lost")) {
-                    config.infoType = InfoType.PACKET_LOST;
+                    // } else if (param.equalsIgnoreCase("packet_lost")) {
+                    // config.infoType = InfoType.PACKET_LOST;
                 } else {
                     throw new BindingConfigParseException("Unsupported info parameter " + param);
                 }
@@ -486,6 +486,11 @@ public class SimaticGenericBindingProvider extends AbstractGenericBindingProvide
          * Requested info type
          */
         public InfoType infoType;
+
+        @Override
+        public String toString() {
+            return item.getName() + " (Device=" + this.device + " InfoType=" + this.infoType + ")";
+        }
     }
 
     public enum InfoType {

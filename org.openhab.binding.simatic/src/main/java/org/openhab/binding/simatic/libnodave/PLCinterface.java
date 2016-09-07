@@ -60,7 +60,7 @@ public class PLCinterface {
         }
     }
 
-    public void write(byte[] b, int start, int len) {
+    public void write(byte[] b, int start, int len) throws IOException {
         if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0) {
             Nodave.dump("Interface.write", b, start, len);
         }
@@ -68,6 +68,7 @@ public class PLCinterface {
             out.write(b, start, len);
         } catch (IOException e) {
             System.err.println("Interface.write: " + e);
+            throw e;
         }
     }
     /*
@@ -87,7 +88,7 @@ public class PLCinterface {
      * }
      */
     /*
-     * 
+     *
      * public int read(byte[] b, int start, int len) {
      * int res;
      * if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0)
@@ -104,7 +105,7 @@ public class PLCinterface {
      * System.out.println(e);
      * }
      * }
-     * 
+     *
      * if (in.available() > 0) {
      * // if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0)
      * // System.out.println("can read");
@@ -120,7 +121,7 @@ public class PLCinterface {
      * }
      */
 
-    public int read(byte[] b, int start, int len) {
+    public int read(byte[] b, int start, int len) throws IOException {
         int res;
         if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0) {
             System.out.println("Interface.read");
@@ -156,15 +157,16 @@ public class PLCinterface {
             // return 0;
         } catch (IOException e) {
             System.out.println(e);
-            return 0;
+            throw e;
+            // return 0;
         }
     }
 
-    public int initAdapter() {
+    public int initAdapter() throws IOException {
         return 0;
     }
 
-    public int disconnectAdapter() {
+    public int disconnectAdapter() throws IOException {
         return 0;
     }
 

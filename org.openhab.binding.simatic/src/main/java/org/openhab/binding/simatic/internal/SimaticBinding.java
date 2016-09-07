@@ -124,15 +124,15 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
             }
         }
 
-        logger.debug("setProperlyConfigured ");
-
-        setProperlyConfigured(true);
-
         for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
             item.getValue().setBindingData(eventPublisher, items, infoItems);
             item.getValue().prepareData();
             item.getValue().open();
         }
+
+        logger.debug("setProperlyConfigured ");
+
+        setProperlyConfigured(true);
     }
 
     /**
@@ -206,11 +206,13 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
             // go through all devices
             for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
                 // should reconnect
-                if (item.getValue().shouldReconnect()) {
-                    item.getValue().reconnect();
+                if (!item.getValue().isConnected() || item.getValue().shouldReconnect()) {
+                    item.getValue().reconnectWithDelaying();
                 }
-                // check device for new data
-                item.getValue().checkNewData();
+                if (item.getValue().isConnected()) {
+                    // check device for new data
+                    item.getValue().checkNewData();
+                }
             }
         }
     }

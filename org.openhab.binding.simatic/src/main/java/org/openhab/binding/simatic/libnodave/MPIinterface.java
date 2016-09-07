@@ -22,6 +22,7 @@
 */
 package org.openhab.binding.simatic.libnodave;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -38,7 +39,7 @@ public class MPIinterface extends PLCinterface {
     /*
      * Send a string of init data to the MPI adapter.
      */
-    int initStep(int nr, byte[] fix, int len, String initRoutine) {
+    int initStep(int nr, byte[] fix, int len, String initRoutine) throws IOException {
         int res;
         if (readSingle() != DLE) {
             if ((Nodave.Debug & Nodave.DEBUG_INITADAPTER) != 0) {
@@ -66,13 +67,13 @@ public class MPIinterface extends PLCinterface {
         return 0;
     }
 
-    void sendSingle(byte c) {
+    void sendSingle(byte c) throws IOException {
         byte[] b = { 0 };
         b[0] = c;
         write(b, 0, 1);
     }
 
-    byte readSingle() {
+    byte readSingle() throws IOException {
         byte[] b = { 0 };
         int res = read(b, 0, 1);
         if ((Nodave.Debug & Nodave.DEBUG_RAWREAD) != 0) {
@@ -83,7 +84,7 @@ public class MPIinterface extends PLCinterface {
 
     int sendWithCRC(byte[] b, // a buffer containing the message
             int size // the size of the string
-    ) {
+    ) throws IOException {
         byte[] target = new byte[Nodave.MAX_RAW_LEN];
         int targetSize = 0, i;
         byte bcc = (byte) (DLE ^ ETX); // preload
@@ -114,7 +115,7 @@ public class MPIinterface extends PLCinterface {
     /*
      * List reachable devices on this MPI net.
      */
-    public int listReachablePartners(byte[] buf) {
+    public int listReachablePartners(byte[] buf) throws IOException {
         byte[] b1 = new byte[Nodave.MAX_RAW_LEN];
         byte[] m1 = { 1, 7, 2 };
         int res;
@@ -154,7 +155,7 @@ public class MPIinterface extends PLCinterface {
         return Nodave.PartnerListSize;
     };
 
-    int readMPI(byte[] b) {
+    int readMPI(byte[] b) throws IOException {
         if ((Nodave.Debug & Nodave.DEBUG_RAWREAD) != 0) {
             System.out.println("readMPI");
         }
@@ -222,7 +223,7 @@ public class MPIinterface extends PLCinterface {
     }
 
     @Override
-    public int initAdapter() {
+    public int initAdapter() throws IOException {
         byte[] b2 = { 0x01, 0x0D, 0x02, };
         int[] answ1 = { 0x01, 0x0D, 0x20, 'V', '0', '0', '.', '8', '3' };
         int[] adapter0330 = { 0x01, 0x03, 0x20, 'E', '=', '0', '3', '3', '0' };
@@ -315,7 +316,7 @@ public class MPIinterface extends PLCinterface {
         return 0;
     }
 
-    int readMPI2(byte[] b) {
+    int readMPI2(byte[] b) throws IOException {
         int res = readMPI(b);
         if (res > 1) {
             sendSingle(DLE);
@@ -344,7 +345,7 @@ public class MPIinterface extends PLCinterface {
     };
 
     @Override
-    public int disconnectAdapter() {
+    public int disconnectAdapter() throws IOException {
         System.out.println("enter disconnectAdapter()");
         byte[] m2 = { 1, 4, 2 };
         byte[] b1 = new byte[Nodave.MAX_RAW_LEN];

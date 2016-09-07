@@ -19,6 +19,8 @@
 */
 package org.openhab.binding.simatic.libnodave;
 
+import java.io.IOException;
+
 public class MPIConnection extends S7Connection {
     byte needAckNumber;
     MPIinterface mpiface;
@@ -38,7 +40,7 @@ public class MPIConnection extends S7Connection {
         ackPos = 6;
     }
 
-    int sendDialog2(int size) {
+    int sendDialog2(int size) throws IOException {
         mpiface.sendSingle(STX);
         if (mpiface.readSingle() != DLE) {
             System.out.println("*** no DLE before send.");
@@ -67,7 +69,7 @@ public class MPIConnection extends S7Connection {
     }
 
     @Override
-    public int exchange(PDU p1) {
+    public int exchange(PDU p1) throws IOException {
         int res;
         if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
             System.out.println(" enter MPI.Exchange");
@@ -128,7 +130,7 @@ public class MPIConnection extends S7Connection {
         return 0;
     }
 
-    void sendAck(byte ackNr) {
+    void sendAck(byte ackNr) throws IOException {
         byte[] ack = new byte[3];
         if ((Nodave.Debug & Nodave.DEBUG_CONN) != 0) {
             System.out.println("sendAck for message " + ackNr);
@@ -139,7 +141,7 @@ public class MPIConnection extends S7Connection {
         sendWithPrefix(ack, ack.length);
     }
 
-    int getAck(int nr) {
+    int getAck(int nr) throws IOException {
         byte[] b1 = new byte[Nodave.MAX_RAW_LEN];
         int res = mpiface.readMPI(b1);
         if (res < 0) {
@@ -168,11 +170,11 @@ public class MPIConnection extends S7Connection {
         return 0;
     }
 
-    int readMPI4() {
+    int readMPI4() throws IOException {
         return mpiface.readMPI2(msgIn);
     }
 
-    int readMPI1(byte[] b) {
+    int readMPI1(byte[] b) throws IOException {
         int res = mpiface.readMPI(b);
         if (res > 1) {
             mpiface.sendSingle(DLE);
@@ -185,7 +187,7 @@ public class MPIConnection extends S7Connection {
      * after doubling DLEs in the String
      * and adding DLE,ETX and bcc.
      */
-    int sendWithPrefix(byte[] b, int size) {
+    int sendWithPrefix(byte[] b, int size) throws IOException {
         byte[] target = new byte[Nodave.MAX_RAW_LEN];
         byte[] fix = { 04, (byte) 0x80, (byte) 0x80, 0x0C, 0x03, 0x14 };
         if ((Nodave.Debug & Nodave.DEBUG_RAWSEND) != 0) {
@@ -204,7 +206,7 @@ public class MPIConnection extends S7Connection {
         return mpiface.sendWithCRC(target, size + fix.length);
     }
 
-    int sendWithPrefix2(int size) {
+    int sendWithPrefix2(int size) throws IOException {
         byte fix[] = { 04, (byte) 0x80, (byte) 0x80, 0x0C, 0x03, 0x14 };
         msgOut[0] = fix[0];
         msgOut[1] = fix[1];
@@ -225,7 +227,7 @@ public class MPIConnection extends S7Connection {
      * (or reused for the same PLC ?)
      */
     @Override
-    public int connectPLC() {
+    public int connectPLC() throws IOException {
         int res;
         byte[] b4 = { 0x04, (byte) 0x80, (byte) 0x80, 0x0D, 0x00, 0x14, (byte) 0xE0, 0x04, 0x00, (byte) 0x80, 0x00,
                 0x02, 0x00, 0x02, 0x01, 0x00, 0x01, 0x00, };
@@ -289,12 +291,12 @@ public class MPIConnection extends S7Connection {
         return 0;
     }
 
-    int readMPI3() {
+    int readMPI3() throws IOException {
         return mpiface.readMPI(msgIn);
     }
 
     @Override
-    public int disconnectPLC() {
+    public int disconnectPLC() throws IOException {
         int i, res;
         byte[] m = { (byte) 0x80 };
         i = sendDialog(m, m.length);
@@ -310,7 +312,7 @@ public class MPIConnection extends S7Connection {
         return 0;
     }
 
-    int sendDialog(byte[] b, int size) {
+    int sendDialog(byte[] b, int size) throws IOException {
         mpiface.sendSingle(STX);
         if (mpiface.readSingle() != DLE) {
             if ((Nodave.Debug & Nodave.DEBUG_PRINT_ERRORS) != 0) {
@@ -339,7 +341,7 @@ public class MPIConnection extends S7Connection {
     }
 
     @Override
-    public int getResponse() {
+    public int getResponse() throws IOException {
         int res, i;
         res = 0;
         if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {

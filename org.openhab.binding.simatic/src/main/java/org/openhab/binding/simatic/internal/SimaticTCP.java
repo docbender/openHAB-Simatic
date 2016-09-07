@@ -95,7 +95,7 @@ public class SimaticTCP extends SimaticGenericDevice {
     @Override
     public Boolean open() {
         if (logger.isDebugEnabled()) {
-            logger.debug("{} - connection try", this.toString());
+            logger.debug("{} - open() - connecting", this.toString());
         }
 
         portState.setState(PortStates.CLOSED);
@@ -131,16 +131,21 @@ public class SimaticTCP extends SimaticGenericDevice {
 
         dc = new TCPConnection(di, rack, slot);
 
-        if (dc.connectPLC() == 0) {
-            if (logger.isInfoEnabled()) {
-                logger.info("{} - connected", this.toString());
-            }
-            portState.setState(PortStates.LISTENING);
-            connected = true;
-        } else {
-            if (logger.isInfoEnabled()) {
+        try {
+            if (dc.connectPLC() == 0) {
+                if (logger.isInfoEnabled()) {
+                    logger.info("{} - connected", this.toString());
+                }
+                portState.setState(PortStates.LISTENING);
+                tryReconnect.set(false);
+                connected = true;
+            } else {
                 logger.error("{} - cannot connect to PLC", this.toString());
+
+                return false;
             }
+        } catch (IOException ex) {
+            logger.error("{} - cannot connect to PLC due: {}", this.toString(), ex.getMessage());
 
             return false;
         }
@@ -162,11 +167,19 @@ public class SimaticTCP extends SimaticGenericDevice {
         connected = false;
 
         if (dc != null) {
-            dc.disconnectPLC();
+            try {
+                dc.disconnectPLC();
+            } catch (IOException ex) {
+
+            }
             dc = null;
         }
         if (di != null) {
-            di.disconnectAdapter();
+            try {
+                di.disconnectAdapter();
+            } catch (IOException ex) {
+
+            }
             di = null;
         }
         if (sock != null) {
@@ -209,15 +222,24 @@ public class SimaticTCP extends SimaticGenericDevice {
                 logger.debug(datastring);
             }
 
-            int result = dc.writeBytes(data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
-                    data.getAddressSpaceLength(), data.getData());
-            if (result != 0) {
-                logger.error("{} - Write data area error (Area={}, Result=0x{}, Error={})", toString(), data.toString(),
-                        Integer.toHexString(result), Nodave.strerror(result));
+            try {
+                int result = dc.writeBytes(data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
+                        data.getAddressSpaceLength(), data.getData());
+                if (result != 0) {
+                    logger.error("{} - Write data area error (Area={}, Result=0x{}, Error={})", toString(),
+                            data.toString(), Integer.toHexString(result), Nodave.strerror(result));
 
-                if (result == Nodave.RESULT_UNEXPECTED_FUNC) {
-                    tryReconnect.set(true);
+                    if (result == Nodave.RESULT_UNEXPECTED_FUNC) {
+                        tryReconnect.set(true);
+                    }
+                    return false;
                 }
+            } catch (IOException ex) {
+                logger.error("{} - Write data area error (Area={}, Error={})", toString(), data.toString(),
+                        ex.getMessage());
+                portState.setState(PortStates.RESPONSE_ERROR);
+                tryReconnect.set(true);
+
                 return false;
             }
         } else {
@@ -234,9 +256,20 @@ public class SimaticTCP extends SimaticGenericDevice {
 
                 logger.debug(datastring);
             }
-            int result = dc.writeBits(data.getAreaIntFormat(), data.getDBNumber(),
-                    8 * data.getAddress().getByteOffset() + data.getAddress().getBitOffset(),
-                    data.getAddressSpaceLength(), data.getData());
+            int result;
+            try {
+                result = dc.writeBits(data.getAreaIntFormat(), data.getDBNumber(),
+                        8 * data.getAddress().getByteOffset() + data.getAddress().getBitOffset(),
+                        data.getAddressSpaceLength(), data.getData());
+            } catch (IOException ex) {
+                logger.error("{} - Write data area error (Area={}, Error={})", toString(), data.toString(),
+                        ex.getMessage());
+                portState.setState(PortStates.RESPONSE_ERROR);
+                tryReconnect.set(true);
+
+                return false;
+            }
+
             if (result != 0) {
                 logger.error("{} - Write data area error (Area={}, Result=0x{}, Error={})", toString(), data.toString(),
                         Integer.toHexString(result), Nodave.strerror(result));
@@ -274,16 +307,29 @@ public class SimaticTCP extends SimaticGenericDevice {
             for (SimaticReadDataArea area : readAreasList.getData()) {
                 byte[] buffer = new byte[area.getAddressSpaceLength()];
 
-                int result = dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
-                        area.getAddressSpaceLength(), buffer);
+                int result;
+                try {
+                    result = dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
+                            area.getAddressSpaceLength(), buffer);
+                } catch (IOException ex) {
+                    logger.error("{} - Read data area error (Area={}, Error={})", toString(), area.toString(),
+                            ex.getMessage());
+                    portState.setState(PortStates.RESPONSE_ERROR);
+                    tryReconnect.set(true);
+
+                    return;
+                }
 
                 if (result != 0) {
                     logger.error("{} - Read data area error (Area={}, Return code=0x{}, Error={})", toString(),
                             area.toString(), Integer.toHexString(result), Nodave.strerror(result));
 
-                    if (result == Nodave.RESULT_UNEXPECTED_FUNC) {
+                    if (result == Nodave.RESULT_UNEXPECTED_FUNC
+                            || result == Nodave.RESULT_READ_DATA_BUFFER_INSUFFICIENT_SPACE
+                            || result == Nodave.RESULT_NO_DATA_RETURNED) {
+                        portState.setState(PortStates.RESPONSE_ERROR);
                         tryReconnect.set(true);
-                        break;
+                        return;
                     } else {
                         continue;
                     }

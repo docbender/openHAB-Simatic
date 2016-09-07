@@ -22,6 +22,8 @@
 */
 package org.openhab.binding.simatic.libnodave;
 
+import java.io.IOException;
+
 public class NetLinkProConnection extends S7Connection {
     byte MPI;
 
@@ -32,7 +34,7 @@ public class NetLinkProConnection extends S7Connection {
         PDUstartOut = 6 + 7;
     }
 
-    private int readPacket() {
+    private int readPacket() throws IOException {
         int res = iface.read(msgIn, 0, 2);
         if (res == 2) {
             int len = 0x100 * msgIn[0] + msgIn[1];
@@ -41,7 +43,7 @@ public class NetLinkProConnection extends S7Connection {
         return res;
     }
 
-    int writeIBH(byte[] buffer, int len) {
+    int writeIBH(byte[] buffer, int len) throws IOException {
         iface.write(buffer, 0, len);
         if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0) {
             Nodave.dump("writeIBH ", buffer, 0, len);
@@ -49,7 +51,7 @@ public class NetLinkProConnection extends S7Connection {
         return 0;
     }
 
-    int readIBHPacket() {
+    int readIBHPacket() throws IOException {
         // System.out.println("readIBHPacket");
         int i, res = 0;
         res = iface.read(msgIn, 0, 2);
@@ -77,7 +79,7 @@ public class NetLinkProConnection extends S7Connection {
      * it will send this byte sequence.
      * It will then wait for a packet and compare it to the sample.
      */
-    int initStepIBH(byte[] chal, int[] resp, int rl) {
+    int initStepIBH(byte[] chal, int[] resp, int rl) throws IOException {
         int res = 0, a = 0;
         int res2;
         if ((Nodave.Debug & Nodave.DEBUG_CONNECT) != 0) {
@@ -145,7 +147,7 @@ public class NetLinkProConnection extends S7Connection {
     byte dst_conn;
 
     @Override
-    public int connectPLC() {
+    public int connectPLC() throws IOException {
         int a = 0, res, retries;
         PDU p1;
         src_conn = 20 - 1;
@@ -231,7 +233,7 @@ public class NetLinkProConnection extends S7Connection {
     byte[] MPIack = { 0x07, (byte) 0xff, 0x08, 0x05, 0x00, 0x00, (byte) 0x82, 0x00, 0x15, 0x14, 0x02, 0x00, 0x03,
             (byte) 0xb0, 0x01, 0x00, };
 
-    void sendMPIAck_IBH() {
+    void sendMPIAck_IBH() throws IOException {
         MPIack[15] = msgIn[16];
         MPIack[8] = src_conn;
         MPIack[9] = dst_conn;
@@ -245,7 +247,7 @@ public class NetLinkProConnection extends S7Connection {
 
     byte[] ack = new byte[13];
 
-    void sendIBHNetAck() {
+    void sendIBHNetAck() throws IOException {
         System.arraycopy(msgIn, 0, ack, 0, ack.length);
         ack[11] = 1;
         ack[12] = 9;
@@ -276,7 +278,7 @@ public class NetLinkProConnection extends S7Connection {
     /*
      * packet analysis. mixes all levels.
      */
-    int analyze() {
+    int analyze() throws IOException {
         // System.out.println("enter analyze");
         int haveResp = 0;
         PDU p1;
@@ -363,7 +365,7 @@ public class NetLinkProConnection extends S7Connection {
     };
 
     @Override
-    public int exchange(PDU p) {
+    public int exchange(PDU p) throws IOException {
         int res, count, pt;
         // System.out.println("enter ExchangeIBH\n");
         packPDU(p);
@@ -392,7 +394,7 @@ public class NetLinkProConnection extends S7Connection {
             (byte) 0x80, };
 
     @Override
-    public int disconnectPLC() {
+    public int disconnectPLC() throws IOException {
         System.out.println("disconnectPLC");
         Nodave.Debug = Nodave.DEBUG_ALL;
         chal31[8] = src_conn;

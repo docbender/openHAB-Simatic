@@ -53,6 +53,10 @@ import org.slf4j.LoggerFactory;
 public class SimaticGenericDevice implements SimaticIDevice {
     private static final Logger logger = LoggerFactory.getLogger(SimaticGenericDevice.class);
 
+    private static final int RECONNECT_DELAY_MAX = 15;
+    private int rcTest = 0;
+    private int rcTestMax = 0;
+
     /** device name ex.: plc,plc1, ... */
     protected final String deviceName;
     /** device ID ex.: 192.168.1.1, ... */
@@ -185,11 +189,33 @@ public class SimaticGenericDevice implements SimaticIDevice {
     /**
      * Reconnect device
      */
-    public void reconnect() {
+    public boolean reconnect() {
         logger.info("{}: Trying to reconnect", toString());
 
         close();
-        open();
+        return open();
+    }
+
+    /**
+     * Reconnect device
+     */
+    public void reconnectWithDelaying() {
+
+        // logger.info("reconnectWithDelaying(): {}/{}/{}", rcTest, rcTestMax, RECONNECT_DELAY_MAX);
+        if (rcTest < rcTestMax) {
+            rcTest++;
+            return;
+        }
+
+        if (reconnect()) {
+            rcTest = 0;
+            rcTestMax = 0;
+        } else {
+            if (rcTestMax <= RECONNECT_DELAY_MAX) {
+                rcTestMax++;
+            }
+            rcTest = 0;
+        }
     }
 
     /**

@@ -22,6 +22,8 @@
 */
 package org.openhab.binding.simatic.libnodave;
 
+import java.io.IOException;
+
 public class PPIConnection extends S7Connection {
     public static final byte SYN = 0x16;
     public static final byte DLE = 0x10;
@@ -41,7 +43,7 @@ public class PPIConnection extends S7Connection {
     Object oo;
 
     @Override
-    public synchronized int exchange(PDU p1) {
+    public synchronized int exchange(PDU p1) throws IOException {
         int i, res = 0, len, expectedLen = 6, sum;
         boolean expectingLength = true;
         boolean myturn = true;
@@ -79,7 +81,7 @@ public class PPIConnection extends S7Connection {
         return getResponse3();
     }
 
-    public int getResponse3() {
+    public int getResponse3() throws IOException {
 
         int i, res = 0, len, expectedLen = 6, sum;
         boolean expectingLength = true;
@@ -140,11 +142,11 @@ public class PPIConnection extends S7Connection {
 
     }
 
-    public int readByteBlock(int area, int DBnum, int start, int len) {
+    public int readByteBlock(int area, int DBnum, int start, int len) throws IOException {
         return readBytes(area, DBnum, start, len, null);
     }
 
-    public void sendLength(int len) {
+    public void sendLength(int len) throws IOException {
         byte b[] = { 104, 0, 0, 104 };
         b[1] = (byte) len;
         b[2] = (byte) len;
@@ -154,14 +156,14 @@ public class PPIConnection extends S7Connection {
         }
     }
 
-    public int readCharsPPI(int offset, int tmo) {
+    public int readCharsPPI(int offset, int tmo) throws IOException {
         int res = 0;
         res = iface.read(msgIn, offset, 512);
         return res;
     }
 
     @Override
-    public void sendRequestData(int alt) {
+    public void sendRequestData(int alt) throws IOException {
         byte b[] = { DLE, 0, 0, 0x5C, 0, 0 };
         b[1] = (byte) PPIAdr;
         b[2] = (byte) (iface.localMPI);
@@ -174,7 +176,7 @@ public class PPIConnection extends S7Connection {
         sendIt(b, 1, b.length - 3);
     }
 
-    public void sendIt(byte[] b, int start, int len) {
+    public void sendIt(byte[] b, int start, int len) throws IOException {
         int i;
         int sum = 0;
         for (i = 0; i < len; i++) {
@@ -192,7 +194,7 @@ public class PPIConnection extends S7Connection {
     }
 
     @Override
-    public int getResponse() {
+    public int getResponse() throws IOException {
         int res, expectedLen, expectingLength, i, sum, alt;
         res = 0;
         expectedLen = 6;
@@ -278,7 +280,7 @@ public class PPIConnection extends S7Connection {
      * }
      * }
      * }
-     * 
+     *
      * if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0)
      * System.out.println("res " + res + " testing lastChar");
      * if (msgIn[res - 1] != SYN) {
@@ -306,7 +308,7 @@ public class PPIConnection extends S7Connection {
      */
 
     @Override
-    public int sendMsg(PDU p1) {
+    public int sendMsg(PDU p1) throws IOException {
         int len, res = 0, i;
         msgOut[0] = (byte) PPIAdr; // address ?
         msgOut[1] = (byte) iface.localMPI;
@@ -321,7 +323,7 @@ public class PPIConnection extends S7Connection {
     }
 
     @Override
-    public int getPPIresponse() {
+    public int getPPIresponse() throws IOException {
         int res, expectedLen, i, sum;
         res = 0;
         expectedLen = 6;

@@ -22,6 +22,8 @@
 */
 package org.openhab.binding.simatic.libnodave;
 
+import java.io.IOException;
+
 public class TCPConnection extends S7Connection {
     int rack;
     int slot;
@@ -34,7 +36,7 @@ public class TCPConnection extends S7Connection {
         PDUstartOut = 7;
     }
 
-    protected int readISOPacket() {
+    protected int readISOPacket() throws IOException {
         int res = iface.read(msgIn, 0, 4);
         if (res == 4) {
             int len = 0x100 * msgIn[2] + msgIn[3];
@@ -45,7 +47,7 @@ public class TCPConnection extends S7Connection {
         return res;
     }
 
-    protected int sendISOPacket(int size) {
+    protected int sendISOPacket(int size) throws IOException {
         size += 4;
         msgOut[0] = (byte) 0x03;
         msgOut[1] = (byte) 0x0;
@@ -67,7 +69,7 @@ public class TCPConnection extends S7Connection {
     }
 
     @Override
-    public int exchange(PDU p1) {
+    public int exchange(PDU p1) throws IOException {
         int res;
         PDU p2;
         if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
@@ -78,6 +80,9 @@ public class TCPConnection extends S7Connection {
         msgOut[6] = (byte) 0x80;
         sendISOPacket(3 + p1.hlen + p1.plen + p1.dlen);
         res = readISOPacket();
+        if (res == 0) {
+            return Nodave.RESULT_NO_DATA_RETURNED;
+        }
         return 0;
     }
 
@@ -86,9 +91,11 @@ public class TCPConnection extends S7Connection {
      * Open connection to a PLC. This assumes that dc is initialized by
      * daveNewConnection and is not yet used.
      * (or reused for the same PLC ?)
+     *
+     * @throws IOException
      */
     @Override
-    public int connectPLC() {
+    public int connectPLC() throws IOException {
         int res;
         byte[] b4 = { (byte) 0x11, (byte) 0xE0, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00,
                 (byte) 0xC1, (byte) 0x02, (byte) 0x01, (byte) 0x00, (byte) 0xC2, (byte) 0x02, (byte) 0x01, (byte) 0x02,

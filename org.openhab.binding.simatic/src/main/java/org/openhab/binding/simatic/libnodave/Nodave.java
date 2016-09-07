@@ -109,6 +109,10 @@ public class Nodave {
     public final static int RESULT_EMPTY_RESULT_SET_ERROR = -127;
     public final static int RESULT_UNEXPECTED_FUNC = -128;
     public final static int RESULT_UNKNOWN_DATA_UNIT_SIZE = -129;
+    /* not enough space in buffer for data (readBytes) - happen also when connection lost */
+    public final static int RESULT_READ_DATA_BUFFER_INSUFFICIENT_SPACE = -130;
+    /* read len from input stream is equal to 0 */
+    public final static int RESULT_NO_DATA_RETURNED = -131;
 
     public final static int RESULT_SHORT_PACKET = -1024;
     public final static int RESULT_TIMEOUT = -1025;
@@ -169,7 +173,7 @@ public class Nodave {
 
     /**
      * This doesn't swap anything, but the name fits into the series
-     * 
+     *
      * @param a
      * @return
      */
@@ -181,7 +185,7 @@ public class Nodave {
 
     /**
      * Dumps len hex codes from byte array mem beginning at index start.
-     * 
+     *
      * @param text: a text to print before the list
      * @return
      */
@@ -399,6 +403,10 @@ public class Nodave {
                 return "Short packet from PLC";
             case Nodave.RESULT_TIMEOUT:
                 return "Timeout when waiting for PLC response";
+            case Nodave.RESULT_READ_DATA_BUFFER_INSUFFICIENT_SPACE:
+                return "Buffer size insufficient while readBytes";
+            case Nodave.RESULT_NO_DATA_RETURNED:
+                return "No data returned. Connection lost?";
             case 0x8000:
                 return "function already occupied.";
             case 0x8001:

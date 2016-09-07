@@ -22,6 +22,8 @@
 */
 package org.openhab.binding.simatic.libnodave;
 
+import java.io.IOException;
+
 /**
  *
  * @author Thomas Hergenhahn
@@ -177,9 +179,9 @@ public abstract class S7Connection {
         return Nodave.SByte(msgIn, udata + pos);
     }
 
-    abstract public int exchange(PDU p1);
+    abstract public int exchange(PDU p1) throws IOException;
 
-    public int readBytes(int area, int DBnum, int start, int len, byte[] buffer) {
+    public int readBytes(int area, int DBnum, int start, int len, byte[] buffer) throws IOException {
         int res = 0;
         semaphore.enter();
         // System.out.println("readBytes");
@@ -218,7 +220,19 @@ public abstract class S7Connection {
          * copy to user buffer and setup internal buffer pointers:
          */
         if (buffer != null) {
+            if (buffer.length < p2.udlen || p2.mem.length < p2.udata + p2.udlen) {
+                semaphore.leave();
+                return Nodave.RESULT_READ_DATA_BUFFER_INSUFFICIENT_SPACE;
+            }
+
+            // try {
             System.arraycopy(p2.mem, p2.udata, buffer, 0, p2.udlen);
+            // } catch (Exception ex) {
+            // Logger logger = LoggerFactory.getLogger(S7Connection.class);
+            // logger.info("mem/udata/buffer/udlen={}/{}/{}/{}", p2.mem.length, p2.udata, buffer.length, p2.udlen);
+            // logger.info("mem={}", p2.mem);
+            // logger.error(ex.toString());
+            // }
         }
 
         dataPointer = p2.udata;
@@ -239,7 +253,7 @@ public abstract class S7Connection {
     /*
      * Write len bytes to PLC memory area "area", data block DBnum.
      */
-    public int writeBytes(int area, int DBnum, int start, int len, byte[] buffer) {
+    public int writeBytes(int area, int DBnum, int start, int len, byte[] buffer) throws IOException {
         int errorState = 0;
         semaphore.enter();
         PDU p1 = new PDU(msgOut, PDUstartOut);
@@ -273,7 +287,7 @@ public abstract class S7Connection {
     /*
      * Write bits to PLC memory area "area", data block DBnum.
      */
-    public int writeBits(int area, int DBnum, int start, int len, byte[] buffer) {
+    public int writeBits(int area, int DBnum, int start, int len, byte[] buffer) throws IOException {
         int errorState = 0;
         semaphore.enter();
         PDU p1 = new PDU(msgOut, PDUstartOut);
@@ -309,11 +323,11 @@ public abstract class S7Connection {
      * return readBytes(area, areaNumber, start, len, null);
      * }
      */
-    public int disconnectPLC() {
+    public int disconnectPLC() throws IOException {
         return 0;
     }
 
-    public int connectPLC() {
+    public int connectPLC() throws IOException {
         return 0;
     }
 
@@ -344,19 +358,19 @@ public abstract class S7Connection {
      * public void sendYOURTURN() {
      * }
      */
-    public int getResponse() {
+    public int getResponse() throws IOException {
         return 0;
     }
 
-    public int getPPIresponse() {
+    public int getPPIresponse() throws IOException {
         return 0;
     }
 
-    public int sendMsg(PDU p) {
+    public int sendMsg(PDU p) throws IOException {
         return 0;
     }
 
-    public void sendRequestData(int alt) {
+    public void sendRequestData(int alt) throws IOException {
     }
 
     // int numResults;
@@ -373,7 +387,7 @@ public abstract class S7Connection {
      * If it's NULL you can get your data from the resultPointer in daveConnection long
      * as you do not send further requests.
      */
-    public ResultSet execReadRequest(PDU p) {
+    public ResultSet execReadRequest(PDU p) throws IOException {
         PDU p2;
         int errorState;
         errorState = exchange(p);
@@ -450,7 +464,7 @@ public abstract class S7Connection {
     /*
      * build the PDU for a PDU length negotiation
      */
-    public int negPDUlengthRequest() {
+    public int negPDUlengthRequest() throws IOException {
         int res;
         PDU p = new PDU(msgOut, PDUstartOut);
         byte pa[] = { (byte) 0xF0, 0, 0x00, 0x01, 0x00, 0x01, 0x03, (byte) 0xC0, };
