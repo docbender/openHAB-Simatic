@@ -37,6 +37,8 @@ public abstract class S7Connection {
     PDU rcvdPDU;
     public byte[] msgIn;
     public byte[] msgOut;
+    int communicationType = 3; // 1=PG Communication,2=OP Communication,3=Step7Basic(Other) Communication
+
     /**
      * position in result data, incremented when variables are extracted without position
      */
@@ -61,6 +63,11 @@ public abstract class S7Connection {
         PDUstartIn = 0;
         PDUstartOut = 0;
         semaphore = new Semaphore(1);
+    }
+
+    public S7Connection(PLCinterface ifa, int communicationType) {
+        this(ifa);
+        this.communicationType = communicationType;
     }
 
     /**
@@ -228,9 +235,6 @@ public abstract class S7Connection {
             // try {
             System.arraycopy(p2.mem, p2.udata, buffer, 0, p2.udlen);
             // } catch (Exception ex) {
-            // Logger logger = LoggerFactory.getLogger(S7Connection.class);
-            // logger.info("mem/udata/buffer/udlen={}/{}/{}/{}", p2.mem.length, p2.udata, buffer.length, p2.udlen);
-            // logger.info("mem={}", p2.mem);
             // logger.error(ex.toString());
             // }
         }

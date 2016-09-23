@@ -36,6 +36,14 @@ public class TCPConnection extends S7Connection {
         PDUstartOut = 7;
     }
 
+    public TCPConnection(PLCinterface ifa, int rack, int slot, int communicationType) {
+        super(ifa, communicationType);
+        this.rack = rack;
+        this.slot = slot;
+        PDUstartIn = 7;
+        PDUstartOut = 7;
+    }
+
     protected int readISOPacket() throws IOException {
         int res = iface.read(msgIn, 0, 4);
         if (res == 4) {
@@ -105,8 +113,10 @@ public class TCPConnection extends S7Connection {
             System.out.println("daveConnectPLC() step 1. rack:" + rack + " slot:" + slot);
         }
         System.arraycopy(b4, 0, msgOut, 4, b4.length);
-        msgOut[17] = (byte) (rack + 1);
-        msgOut[18] = (byte) slot;
+        // communication type
+        msgOut[17] = (byte) this.communicationType;
+        // rack / slot
+        msgOut[18] = (byte) (slot | (rack << 5));
         sendISOPacket(b4.length);
         readISOPacket();
         if ((Nodave.Debug & Nodave.DEBUG_CONNECT) != 0) {
