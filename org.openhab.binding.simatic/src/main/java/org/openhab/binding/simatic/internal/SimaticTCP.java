@@ -37,7 +37,7 @@ public class SimaticTCP extends SimaticGenericDevice {
     /** address */
     private String plcAddress = "";
     /** rack/slot */
-    private final int rack, slot;
+    private final int rack, slot, communicationType;
 
     Socket sock;
     PLCinterface di;
@@ -53,6 +53,8 @@ public class SimaticTCP extends SimaticGenericDevice {
      *
      * @param deviceName
      * @param ip
+     * @param rack
+     * @param slot
      */
     public SimaticTCP(String deviceName, String ip, int rack, int slot) {
         super(deviceName, "isoTCP");
@@ -60,6 +62,33 @@ public class SimaticTCP extends SimaticGenericDevice {
         this.plcAddress = ip;
         this.rack = rack;
         this.slot = slot;
+
+        this.communicationType = 3;
+    }
+
+    /**
+     * Constructor
+     *
+     * @param deviceName
+     * @param ip
+     * @param rack
+     * @param slot
+     * @param communicationType
+     */
+    public SimaticTCP(String deviceName, String ip, int rack, int slot, String communicationType) {
+        super(deviceName, "isoTCP");
+
+        this.plcAddress = ip;
+        this.rack = rack;
+        this.slot = slot;
+
+        if (communicationType.equals("PG")) {
+            this.communicationType = 1;
+        } else if (communicationType.equals("OP")) {
+            this.communicationType = 2;
+        } else {
+            this.communicationType = 3;
+        }
     }
 
     /**
@@ -129,7 +158,7 @@ public class SimaticTCP extends SimaticGenericDevice {
         }
         di = new PLCinterface(oStream, iStream, "IF1", 0, Nodave.PROTOCOL_ISOTCP);
 
-        dc = new TCPConnection(di, rack, slot);
+        dc = new TCPConnection(di, rack, slot, communicationType);
 
         try {
             if (dc.connectPLC() == 0) {

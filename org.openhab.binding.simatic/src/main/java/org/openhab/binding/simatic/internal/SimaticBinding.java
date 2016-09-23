@@ -97,7 +97,8 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
         devices.clear();
 
         Pattern rgxPLCKey = Pattern.compile("^plc\\d*$");
-        Pattern rgxPLCValue = Pattern.compile("^((\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[.]\\d{1,3})[:]([0-2])[.](\\d{1,2}))$");
+        Pattern rgxPLCValue = Pattern
+                .compile("^((\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[.]\\d{1,3})[:]([0-2])[.](\\d{1,2})(:(OP|PG|S7))?)$");
 
         for (Map.Entry<String, Object> item : configuration.entrySet()) {
             // port
@@ -109,13 +110,20 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
 
                     if (!matcher.matches()) {
                         logger.error("{}: Wrong PLC configuration: {}", item.getKey(), plcString);
-                        logger.info("PLC configuration example: plc=192.168.1.5:0.15 or plc1=192.168.1.5:0.1");
+                        logger.info("PLC configuration example: plc=192.168.1.5:0.15 or plc1=192.168.1.5:0.1:OP");
                         setProperlyConfigured(false);
                         return;
                     }
 
-                    devices.put(item.getKey(), new SimaticTCP(item.getKey(), matcher.group(2),
-                            Integer.parseInt(matcher.group(3)), Integer.parseInt(matcher.group(4))));
+                    if (matcher.group(6) == null) {
+                        devices.put(item.getKey(), new SimaticTCP(item.getKey(), matcher.group(2),
+                                Integer.parseInt(matcher.group(3)), Integer.parseInt(matcher.group(4))));
+                    } else {
+                        devices.put(item.getKey(),
+                                new SimaticTCP(item.getKey(), matcher.group(2), Integer.parseInt(matcher.group(3)),
+                                        Integer.parseInt(matcher.group(4)), matcher.group(6)));
+                    }
+
                 } else {
                     logger.error("Blank port configuration");
                     setProperlyConfigured(false);
