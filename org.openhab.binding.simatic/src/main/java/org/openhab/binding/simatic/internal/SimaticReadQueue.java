@@ -24,6 +24,10 @@ public class SimaticReadQueue {
         data.offer(item);
     }
 
+    public void clear() {
+        data.clear();
+    }
+
     public LinkedList<SimaticReadDataArea> getData() {
         return data;
     }

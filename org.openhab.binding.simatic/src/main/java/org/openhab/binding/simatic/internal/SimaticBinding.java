@@ -75,6 +75,7 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
 
         // the configuration is guaranteed not to be null, because the component definition has the
         // configuration-policy set to require. If set to 'optional' then the configuration may be null
+        // Actually it WAS set to 'optional'. Changed it to 'require' -- AchilleGR
 
         // to override the default refresh interval one has to add a
         // parameter to openhab.cfg like <bindingName>:refresh=<intervalInMs>
@@ -111,6 +112,7 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
                     if (!matcher.matches()) {
                         logger.error("{}: Wrong PLC configuration: {}", item.getKey(), plcString);
                         logger.info("PLC configuration example: plc=192.168.1.5:0.15 or plc1=192.168.1.5:0.1:OP");
+                        logger.debug("setProperlyConfigured: false");
                         setProperlyConfigured(false);
                         return;
                     }
@@ -126,11 +128,14 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
 
                 } else {
                     logger.error("Blank port configuration");
+                    logger.debug("setProperlyConfigured: false");
                     setProperlyConfigured(false);
                     return;
                 }
             }
         }
+        logger.debug("items: {}", items);
+        logger.debug("infoItems: {}", infoItems);
 
         for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
             item.getValue().setBindingData(eventPublisher, items, infoItems);
@@ -138,8 +143,7 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
             item.getValue().open();
         }
 
-        logger.debug("setProperlyConfigured ");
-
+        logger.debug("setProperlyConfigured: true");
         setProperlyConfigured(true);
     }
 
@@ -150,8 +154,10 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
      */
     public void modified(final Map<String, Object> configuration) {
         // update the internal configuration accordingly
-
         logger.debug("modified() method is called!");
+        // Reactivating on modified config -- AchilleGR
+        activate(this.bundleContext, configuration);
+
     }
 
     /**
@@ -272,7 +278,7 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
 
     @Override
     public void bindingChanged(BindingProvider provider, String itemName) {
-        super.bindingChanged(provider, itemName);
+        logger.debug("itemName: {}", itemName);
 
         if (logger.isDebugEnabled()) {
             logger.debug("bindingChanged({},{}) is called!", provider, itemName);
@@ -280,7 +286,9 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
 
         BindingConfig config = ((SimaticGenericBindingProvider) provider).getItemConfig(itemName);
 
+        logger.debug("config: {}", config);
         if (config instanceof SimaticBindingConfig) {
+
             if (items.get(itemName) != null) {
                 items.remove(itemName);
             }
@@ -297,14 +305,30 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
             if (config != null) {
                 infoItems.put(itemName, (SimaticInfoBindingConfig) config);
             }
+        } else if (config == null) {
+            // OpenHAB2 (at least) calls bindingChanged twice, the first time it removes the device (null config), then
+            // reinserts with new values -- AchilleGR
+            items.remove(itemName);
+            infoItems.remove(itemName);
         }
 
         logger.debug("ItemsConfig: {}:{}", items, items.entrySet().size());
+        logger.debug("infoItemsConfig: {}:{}", infoItems);
+        logger.debug("devices: {}", devices);
+        for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
+            // item.getValue().close();
+            item.getValue().unsetBindingData();
+            item.getValue().setBindingData(eventPublisher, items, infoItems);
+            item.getValue().prepareData();
+            // item.getValue().open();
+        }
+        // Calling super in the end allows us to stop the polling service if there are no bindings
+        super.bindingChanged(provider, itemName);
+
     }
 
     @Override
     public void allBindingsChanged(BindingProvider provider) {
-        super.allBindingsChanged(provider);
 
         items.clear();
         infoItems.clear();
@@ -316,8 +340,19 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
                 infoItems.put(item.getKey(), (SimaticInfoBindingConfig) item.getValue());
             }
         }
+        logger.debug("ItemsConfig: {}:{}", items, items.entrySet().size());
+        logger.debug("devices: {}", devices);
+        for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
+            // item.getValue().close();
+            item.getValue().unsetBindingData();
+            item.getValue().setBindingData(eventPublisher, items, infoItems);
+            item.getValue().prepareData();
+            // item.getValue().open();
+        }
 
         logger.debug("allBindingsChanged({}) is called!", provider);
+        // Calling super in the end allows us to stop the polling service if there are no bindings
+        super.allBindingsChanged(provider);
     }
 
 }

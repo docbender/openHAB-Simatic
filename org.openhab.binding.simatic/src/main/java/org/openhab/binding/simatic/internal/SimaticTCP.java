@@ -233,6 +233,9 @@ public class SimaticTCP extends SimaticGenericDevice {
      */
     @Override
     protected boolean sendDataOut(SimaticWriteDataArea data) {
+        // TODO: If the connection is reset because of a network error, we can try to re-send the write instead of
+        // dropping it. -- AchilleGR
+        // TODO: Don't allow writing to addresses corresponding to items marked as read only -- AchilleGR
         if (logger.isDebugEnabled()) {
             logger.debug("{} - Sending data to device", this.toString());
         }
@@ -252,6 +255,10 @@ public class SimaticTCP extends SimaticGenericDevice {
             }
 
             try {
+                // If the connection is closed, this is null -- AchilleGR
+                if (dc == null) {
+                    throw new IOException("dc is null");
+                }
                 int result = dc.writeBytes(data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
                         data.getAddressSpaceLength(), data.getData());
                 if (result != 0) {
@@ -287,6 +294,10 @@ public class SimaticTCP extends SimaticGenericDevice {
             }
             int result;
             try {
+                // If the connection is closed, this is null -- AchilleGR
+                if (dc == null) {
+                    throw new IOException("dc is null");
+                }
                 result = dc.writeBits(data.getAreaIntFormat(), data.getDBNumber(),
                         8 * data.getAddress().getByteOffset() + data.getAddress().getBitOffset(),
                         data.getAddressSpaceLength(), data.getData());
@@ -326,18 +337,24 @@ public class SimaticTCP extends SimaticGenericDevice {
 
             if (!readLock.tryLock()) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("{} - Reading allready in progress", toString());
+                    logger.debug("{} - Reading already in progress", toString());
                 }
                 return;
+
             }
 
-            readLock.lock();
-
+            logger.debug("Locking");
+            // tryLock() has already acquired the lock, this is not needed -- AchilleGR
+            // readLock.lock();
             for (SimaticReadDataArea area : readAreasList.getData()) {
                 byte[] buffer = new byte[area.getAddressSpaceLength()];
 
                 int result;
                 try {
+                    // If the connection is closed, this is null -- AchilleGR
+                    if (dc == null) {
+                        throw new IOException("dc is null");
+                    }
                     result = dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
                             area.getAddressSpaceLength(), buffer);
                 } catch (IOException ex) {
@@ -345,7 +362,8 @@ public class SimaticTCP extends SimaticGenericDevice {
                             ex.getMessage());
                     portState.setState(PortStates.RESPONSE_ERROR);
                     tryReconnect.set(true);
-
+                    logger.debug("Unlocking");
+                    readLock.unlock();
                     return;
                 }
 
@@ -358,6 +376,8 @@ public class SimaticTCP extends SimaticGenericDevice {
                             || result == Nodave.RESULT_NO_DATA_RETURNED) {
                         portState.setState(PortStates.RESPONSE_ERROR);
                         tryReconnect.set(true);
+                        logger.debug("Unlocking");
+                        readLock.unlock();
                         return;
                     } else {
                         continue;
@@ -378,6 +398,7 @@ public class SimaticTCP extends SimaticGenericDevice {
                 }
             }
 
+            logger.debug("Unlocking");
             readLock.unlock();
         }
     }
