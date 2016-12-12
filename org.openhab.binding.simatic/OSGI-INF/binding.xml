@@ -9,12 +9,13 @@
     http://www.eclipse.org/legal/epl-v10.html
 
 -->
-<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.2.0" activate="activate" modified="modified" deactivate="deactivate" name="org.openhab.binding.simatic.binding" immediate="true" configuration-pid="org.openhab.simatic" configuration-policy="optional">
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.2.0" activate="activate" modified="modified" deactivate="deactivate" name="org.openhab.binding.simatic.binding" immediate="true" configuration-pid="org.openhab.simatic">
 	<implementation class="org.openhab.binding.simatic.internal.SimaticBinding" />
 
 	<service>
 		<provide interface="org.osgi.service.event.EventHandler" />
 	</service>
+ <property name="service.pid" type="String" value="org.openhab.simatic"/>
 
 	<property name="event.topics" type="String" value="openhab/command/*" />
 
