@@ -201,7 +201,8 @@ public class SimaticGenericDevice implements SimaticIDevice {
      */
     public void reconnectWithDelaying() {
 
-        // logger.info("reconnectWithDelaying(): {}/{}/{}", rcTest, rcTestMax, RECONNECT_DELAY_MAX);
+        logger.debug("reconnectWithDelaying(): {}/{}/{}", rcTest, rcTestMax, RECONNECT_DELAY_MAX);
+
         if (rcTest < rcTestMax) {
             rcTest++;
             return;
