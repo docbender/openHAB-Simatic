@@ -191,7 +191,9 @@ public class SimaticTCP extends SimaticGenericDevice {
      */
     @Override
     public void close() {
-
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} - close() - disconnecting", this.toString());
+        }
         portState.setState(PortStates.CLOSED);
         connected = false;
 
@@ -360,8 +362,11 @@ public class SimaticTCP extends SimaticGenericDevice {
                 } catch (IOException ex) {
                     logger.error("{} - Read data area error (Area={}, Error={})", toString(), area.toString(),
                             ex.getMessage());
-                    portState.setState(PortStates.RESPONSE_ERROR);
-                    tryReconnect.set(true);
+
+                    if (isConnected()) {
+                        portState.setState(PortStates.RESPONSE_ERROR);
+                        tryReconnect.set(true);
+                    }
                     logger.debug("Unlocking");
                     readLock.unlock();
                     return;
@@ -374,8 +379,10 @@ public class SimaticTCP extends SimaticGenericDevice {
                     if (result == Nodave.RESULT_UNEXPECTED_FUNC
                             || result == Nodave.RESULT_READ_DATA_BUFFER_INSUFFICIENT_SPACE
                             || result == Nodave.RESULT_NO_DATA_RETURNED) {
-                        portState.setState(PortStates.RESPONSE_ERROR);
-                        tryReconnect.set(true);
+                        if (isConnected()) {
+                            portState.setState(PortStates.RESPONSE_ERROR);
+                            tryReconnect.set(true);
+                        }
                         logger.debug("Unlocking");
                         readLock.unlock();
                         return;

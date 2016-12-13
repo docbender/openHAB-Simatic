@@ -172,7 +172,7 @@ public class PLCinterface {
 
     @Override
     public void finalize() throws Throwable {
-        System.out.println("this is finalize");
+        // System.out.println("this is finalize");
         disconnectAdapter();
     }
 }

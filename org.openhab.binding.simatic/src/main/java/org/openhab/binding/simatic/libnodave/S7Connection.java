@@ -498,7 +498,7 @@ public abstract class S7Connection {
 
     @Override
     public void finalize() throws Throwable {
-        System.out.println("this is finalize S7Connection");
+        // System.out.println("this is finalize S7Connection");
         disconnectPLC();
         iface.finalize();
     }

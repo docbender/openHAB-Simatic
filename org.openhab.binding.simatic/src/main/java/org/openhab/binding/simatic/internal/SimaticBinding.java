@@ -278,15 +278,13 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
 
     @Override
     public void bindingChanged(BindingProvider provider, String itemName) {
-        logger.debug("itemName: {}", itemName);
-
         if (logger.isDebugEnabled()) {
-            logger.debug("bindingChanged({},{}) is called!", provider, itemName);
+            logger.debug("bindingChanged() - itemName:{}", itemName);
         }
 
         BindingConfig config = ((SimaticGenericBindingProvider) provider).getItemConfig(itemName);
 
-        logger.debug("config: {}", config);
+        logger.trace("config: {}", config);
         if (config instanceof SimaticBindingConfig) {
 
             if (items.get(itemName) != null) {
@@ -312,23 +310,21 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
             infoItems.remove(itemName);
         }
 
-        logger.debug("ItemsConfig: {}:{}", items, items.entrySet().size());
-        logger.debug("infoItemsConfig: {}:{}", infoItems);
-        logger.debug("devices: {}", devices);
+        logger.trace("ItemsConfig: {}:{}", items, items.entrySet().size());
+        logger.trace("InfoItemsConfig: {}:{}", infoItems, infoItems.entrySet().size());
+        logger.trace("Devices: {}", devices);
         for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
-            // item.getValue().close();
             item.getValue().unsetBindingData();
             item.getValue().setBindingData(eventPublisher, items, infoItems);
             item.getValue().prepareData();
-            // item.getValue().open();
         }
         // Calling super in the end allows us to stop the polling service if there are no bindings
         super.bindingChanged(provider, itemName);
-
     }
 
     @Override
     public void allBindingsChanged(BindingProvider provider) {
+        logger.debug("allBindingsChanged({}) is called!", provider);
 
         items.clear();
         infoItems.clear();
@@ -341,16 +337,13 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
             }
         }
         logger.debug("ItemsConfig: {}:{}", items, items.entrySet().size());
-        logger.debug("devices: {}", devices);
+        logger.debug("InfoItemsConfig: {}:{}", infoItems, infoItems.entrySet().size());
+        logger.debug("Devices: {}", devices);
         for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
-            // item.getValue().close();
             item.getValue().unsetBindingData();
             item.getValue().setBindingData(eventPublisher, items, infoItems);
             item.getValue().prepareData();
-            // item.getValue().open();
         }
-
-        logger.debug("allBindingsChanged({}) is called!", provider);
         // Calling super in the end allows us to stop the polling service if there are no bindings
         super.allBindingsChanged(provider);
     }
