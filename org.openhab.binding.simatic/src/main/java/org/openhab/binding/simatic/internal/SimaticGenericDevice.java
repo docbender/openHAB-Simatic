@@ -347,12 +347,12 @@ public class SimaticGenericDevice implements SimaticIDevice {
 
             if (!readLock.tryLock()) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("{} - Reading allready in progress", toString());
+                    logger.debug("{} - Reading already in progress", toString());
                 }
                 return;
             }
-
-            readLock.lock();
+            // tryLock() has already acquired the lock, this is not needed -- AchilleGR
+            // readLock.lock();
 
             for (SimaticReadDataArea item : readAreasList.getData()) {
                 // Read data depend on connection type
@@ -386,7 +386,22 @@ public class SimaticGenericDevice implements SimaticIDevice {
         // }
         // });
 
+        // This lock achieves two things:
+        // 1) It blocks until checkNewData finishes reading, so that readAreasList isn't null white checkNewData access
+        // it
+        // 2) It doesn't allow checkNewData to run until readAreasList is propagated
+        // -- AchilleGR
+
+        logger.debug("Locking");
+        readLock.lock();
         SimaticReadDataArea readDataArea = null;
+        readAreasList.clear();
+        // Arbitary delay to check that the reading thread exits because of the lock until it is released -- AchilleGR
+        // try {
+        // Thread.sleep(5000);
+        // } catch (InterruptedException ex) {
+        // Thread.currentThread().interrupt();
+        // }
 
         // prepare read queues
         for (Map.Entry<String, SimaticBindingConfig> item : itemsConfig.entrySet()) {
@@ -412,6 +427,8 @@ public class SimaticGenericDevice implements SimaticIDevice {
         for (SimaticReadDataArea i : readAreasList.getData()) {
             logger.debug(i.toString());
         }
+        logger.debug("Unlocking");
+        readLock.unlock();
     }
 
     /**
