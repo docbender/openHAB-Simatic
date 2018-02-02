@@ -392,16 +392,10 @@ public class SimaticGenericDevice implements SimaticIDevice {
         // 2) It doesn't allow checkNewData to run until readAreasList is propagated
         // -- AchilleGR
 
-        logger.debug("Locking");
         readLock.lock();
+        logger.debug("{} - prepareData Locked", this.toString());
         SimaticReadDataArea readDataArea = null;
         readAreasList.clear();
-        // Arbitary delay to check that the reading thread exits because of the lock until it is released -- AchilleGR
-        // try {
-        // Thread.sleep(5000);
-        // } catch (InterruptedException ex) {
-        // Thread.currentThread().interrupt();
-        // }
 
         // prepare read queues
         for (Map.Entry<String, SimaticBindingConfig> item : itemsConfig.entrySet()) {
@@ -422,12 +416,18 @@ public class SimaticGenericDevice implements SimaticIDevice {
             }
         }
 
-        logger.debug("{} - readAreas:", this.toString());
+        if (logger.isDebugEnabled()) {
+            StringBuilder message = new StringBuilder();
+            message.append(String.format("%s - readAreas(Size=%d):", this.toString(), readAreasList.data.size()));
 
-        for (SimaticReadDataArea i : readAreasList.getData()) {
-            logger.debug(i.toString());
+            for (SimaticReadDataArea i : readAreasList.getData()) {
+                message.append(i.toString());
+                message.append(";");
+            }
+
+            logger.debug(message.toString());
         }
-        logger.debug("Unlocking");
+        logger.debug("{} - prepareData Unlocking", this.toString());
         readLock.unlock();
     }
 
@@ -546,8 +546,8 @@ public class SimaticGenericDevice implements SimaticIDevice {
         if (state == null) {
             logger.warn("{} - Incoming data item {} - Unknown  state", toString(), itemName);
         } else {
-            if (logger.isDebugEnabled()) {
-                logger.debug("{} - Incoming data - item:{}/state:{}", toString(), itemName, state);
+            if (logger.isTraceEnabled()) {
+                logger.trace("{} - Incoming data - item:{}/state:{}", toString(), itemName, state);
             }
 
             if (eventPublisher != null) {

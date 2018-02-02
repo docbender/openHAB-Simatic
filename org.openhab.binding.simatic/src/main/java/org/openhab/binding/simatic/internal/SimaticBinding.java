@@ -134,8 +134,9 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
                 }
             }
         }
-        logger.debug("items: {}", items);
-        logger.debug("infoItems: {}", infoItems);
+        logger.debug("ItemsConfig(Size={}):{}", items.entrySet().size(), items);
+        logger.debug("InfoItemsConfig(Size={}):{}", infoItems.entrySet().size(), infoItems);
+        logger.debug("Devices(Size={}):{}", devices.size(), devices);
 
         for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
             item.getValue().setBindingData(eventPublisher, items, infoItems);
@@ -310,9 +311,9 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
             infoItems.remove(itemName);
         }
 
-        logger.trace("ItemsConfig: {}:{}", items, items.entrySet().size());
-        logger.trace("InfoItemsConfig: {}:{}", infoItems, infoItems.entrySet().size());
-        logger.trace("Devices: {}", devices);
+        logger.trace("ItemsConfig(Size={}):{}", items.entrySet().size(), items);
+        logger.trace("InfoItemsConfig(Size={}):{}", infoItems.entrySet().size(), infoItems);
+        logger.trace("Devices(Size={}):{}", devices.size(), devices);
         for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
             item.getValue().unsetBindingData();
             item.getValue().setBindingData(eventPublisher, items, infoItems);
@@ -336,9 +337,9 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
                 infoItems.put(item.getKey(), (SimaticInfoBindingConfig) item.getValue());
             }
         }
-        logger.debug("ItemsConfig: {}:{}", items, items.entrySet().size());
-        logger.debug("InfoItemsConfig: {}:{}", infoItems, infoItems.entrySet().size());
-        logger.debug("Devices: {}", devices);
+        logger.debug("ItemsConfig(Size={}):{}", items.entrySet().size(), items);
+        logger.debug("InfoItemsConfig(Size={}):{}", infoItems.entrySet().size(), infoItems);
+        logger.debug("Devices(Size={}):{}", devices.size(), devices);
         for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
             item.getValue().unsetBindingData();
             item.getValue().setBindingData(eventPublisher, items, infoItems);

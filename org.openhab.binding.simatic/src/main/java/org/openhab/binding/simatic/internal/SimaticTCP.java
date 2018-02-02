@@ -398,8 +398,8 @@ public class SimaticTCP extends SimaticGenericDevice {
                 int start = area.getStartAddress();
 
                 for (SimaticBindingConfig item : area.getItems()) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("{} - PostValue for item={}", toString(), item.toString());
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("{} - PostValue for item={}", toString(), item.toString());
                     }
                     this.postValue(item, buffer, item.getAddress().getByteOffset() - start);
                 }

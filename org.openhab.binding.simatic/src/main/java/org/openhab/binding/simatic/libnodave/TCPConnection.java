@@ -46,16 +46,31 @@ public class TCPConnection extends S7Connection {
 
     protected int readISOPacket() throws IOException {
         int res = iface.read(msgIn, 0, 4);
+        if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
+            Nodave.dump(" read packet", msgIn, 0, res);
+        }
         if (res == 4) {
             int len = 0x100 * msgIn[2] + msgIn[3];
+            if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
+                System.out.println("   expected packet len=" + len);
+            }
             res += iface.read(msgIn, 4, len);
         } else {
             return 0;
+        }
+        if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
+            Nodave.dump(" read packet", msgIn, 0, res);
         }
         return res;
     }
 
     protected int sendISOPacket(int size) throws IOException {
+        if (iface.in.available() > 0) {
+            iface.in.skip(iface.in.available());
+            if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
+                System.out.println(" input buffer cleared");
+            }
+        }
         size += 4;
         msgOut[0] = (byte) 0x03;
         msgOut[1] = (byte) 0x0;

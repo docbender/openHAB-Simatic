@@ -66,6 +66,7 @@ public class PLCinterface {
         }
         try {
             out.write(b, start, len);
+            out.flush();
         } catch (IOException e) {
             System.err.println("Interface.write: " + e);
             throw e;
@@ -142,17 +143,20 @@ public class PLCinterface {
                 }
             }
             res = 0;
-            while ((in.available() > 0) && (len > 0)) {
-                // if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0)
-                // System.out.println("can read");
-                res = in.read(b, start, len);
-                start += res;
-                len -= res;
-                // System.out.println(res+" bytes read");
+            int r, s = start, l = len;
+            while ((in.available() > 0) && (l > 0)) {
+                if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0) {
+                    System.out.println("can read - in.available()=" + in.available());
+                }
+                r = in.read(b, s, l);
+                s += r;
+                l -= r;
+                res += r;
+                if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0) {
+                    System.out.println("got " + res + "bytes");
+                }
             }
-            if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0) {
-                System.out.println("got " + res + "bytes");
-            }
+
             return res;
             // return 0;
         } catch (IOException e) {
