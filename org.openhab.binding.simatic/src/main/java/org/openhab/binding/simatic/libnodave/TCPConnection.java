@@ -50,7 +50,7 @@ public class TCPConnection extends S7Connection {
             Nodave.dump(" read packet", msgIn, 0, res);
         }
         if (res == 4) {
-            int len = 0x100 * msgIn[2] + msgIn[3];
+            int len = 0x100 * (msgIn[2] & 0xFF) + (msgIn[3] & 0xFF);
             if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
                 System.out.println("   expected packet len=" + len);
             }

@@ -329,7 +329,7 @@ public class PDU {
     }
 
     /*
-    
+
     */
     int testResultData() {
         int res = Nodave.RESULT_CANNOT_EVALUATE_PDU; // just assume the worst
@@ -358,6 +358,9 @@ public class PDU {
 
     int testReadResult() {
         if (mem[param] != FUNC_READ) {
+            if ((Nodave.Debug & Nodave.DEBUG_PDU) != 0) {
+                System.out.println(" Unexpected read function=0x" + Integer.toHexString(mem[param]));
+            }
             return Nodave.RESULT_UNEXPECTED_FUNC;
         }
         return testResultData();
