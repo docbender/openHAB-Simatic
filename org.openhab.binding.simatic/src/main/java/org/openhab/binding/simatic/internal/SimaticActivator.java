@@ -23,9 +23,11 @@ public class SimaticActivator implements BundleActivator {
 
     private static Logger logger = LoggerFactory.getLogger(SimaticActivator.class);
 
+    private final String VERSION = "1.2.0";
+
     @Override
     public void start(BundleContext context) throws Exception {
-        logger.debug("Simatic binding has been started.");
+        logger.debug("Simatic binding has been started (v.{}).", VERSION);
 
     }
 

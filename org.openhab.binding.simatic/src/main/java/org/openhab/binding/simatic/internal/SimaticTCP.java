@@ -35,9 +35,9 @@ public class SimaticTCP extends SimaticGenericDevice {
     private static final Logger logger = LoggerFactory.getLogger(SimaticTCP.class);
 
     /** address */
-    private String plcAddress = "";
+    protected String plcAddress = "";
     /** rack/slot */
-    private final int rack, slot, communicationType;
+    protected final int rack, slot, communicationType;
 
     Socket sock;
     PLCinterface di;

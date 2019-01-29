@@ -99,7 +99,7 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
 
         Pattern rgxPLCKey = Pattern.compile("^plc\\d*$");
         Pattern rgxPLCValue = Pattern
-                .compile("^((\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[.]\\d{1,3})[:]([0-2])[.](\\d{1,2})(:(OP|PG|S7))?)$");
+                .compile("^((\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[.]\\d{1,3})[:]([0-2])[.](\\d{1,2})(:(OP|PG|S7|200))?)$");
 
         for (Map.Entry<String, Object> item : configuration.entrySet()) {
             // port
@@ -111,7 +111,8 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
 
                     if (!matcher.matches()) {
                         logger.error("{}: Wrong PLC configuration: {}", item.getKey(), plcString);
-                        logger.info("PLC configuration example: plc=192.168.1.5:0.15 or plc1=192.168.1.5:0.1:OP");
+                        logger.info(
+                                "PLC configuration example: plc=192.168.1.5:0.15 or plc1=192.168.1.5:0.1:OP or plc1=192.168.1.5:0.1:200");
                         logger.debug("setProperlyConfigured: false");
                         setProperlyConfigured(false);
                         return;
@@ -121,11 +122,15 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
                         devices.put(item.getKey(), new SimaticTCP(item.getKey(), matcher.group(2),
                                 Integer.parseInt(matcher.group(3)), Integer.parseInt(matcher.group(4))));
                     } else {
-                        devices.put(item.getKey(),
-                                new SimaticTCP(item.getKey(), matcher.group(2), Integer.parseInt(matcher.group(3)),
-                                        Integer.parseInt(matcher.group(4)), matcher.group(6)));
+                        if (matcher.group(6).equals("200")) {
+                            devices.put(item.getKey(), new SimaticTCP200(item.getKey(), matcher.group(2),
+                                    Integer.parseInt(matcher.group(3)), Integer.parseInt(matcher.group(4))));
+                        } else {
+                            devices.put(item.getKey(),
+                                    new SimaticTCP(item.getKey(), matcher.group(2), Integer.parseInt(matcher.group(3)),
+                                            Integer.parseInt(matcher.group(4)), matcher.group(6)));
+                        }
                     }
-
                 } else {
                     logger.error("Blank port configuration");
                     logger.debug("setProperlyConfigured: false");
