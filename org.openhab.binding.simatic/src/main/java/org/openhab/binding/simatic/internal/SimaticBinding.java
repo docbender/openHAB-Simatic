@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * like querying a Website/Device.
  *
  * @author VitaTucek
- * @since 1.9.0
+ * @since 1.14.0
  */
 public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider> {
 
@@ -145,7 +145,6 @@ public class SimaticBinding extends AbstractActiveBinding<SimaticBindingProvider
 
         for (Map.Entry<String, SimaticGenericDevice> item : devices.entrySet()) {
             item.getValue().setBindingData(eventPublisher, items, infoItems);
-            item.getValue().prepareData();
             item.getValue().open();
         }
 

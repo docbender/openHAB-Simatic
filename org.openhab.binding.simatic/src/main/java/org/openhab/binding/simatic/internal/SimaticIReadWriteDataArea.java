@@ -12,11 +12,12 @@ package org.openhab.binding.simatic.internal;
  * Read / write area interface
  *
  * @author Vita Tucek
- * @since 1.9.0
+ * @since 1.14.0
  */
 public interface SimaticIReadWriteDataArea {
     /** Maximum bytes transfered in one data frame **/
     public static final int MAX_DATA_LENGTH = 192;
+    public static final int MAX_PDU480_DATA_LENGTH = 462;
 
     /**
      * Return PLC area type

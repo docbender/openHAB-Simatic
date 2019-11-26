@@ -36,15 +36,17 @@ import org.slf4j.LoggerFactory;
  * Class holding single write data request
  *
  * @author Vita Tucek
- * @since 1.9.0
+ * @since 1.14.0
  */
 public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
 
     private static final Logger logger = LoggerFactory.getLogger(SimaticWriteDataArea.class);
 
     static int INCREASE_STEP = 5;
+    /** data limit PDU size depending **/
+    int dataLimit = MAX_DATA_LENGTH;
 
-    public static SimaticWriteDataArea create(Command command, SimaticBindingConfig config) {
+    public static SimaticWriteDataArea create(Command command, SimaticBindingConfig config, int pduSize) {
         if (logger.isDebugEnabled()) {
             logger.debug("create(): item:" + config.getName() + "|datatype:" + config.getDataType());
         }
@@ -342,7 +344,7 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                 return null;
         }
 
-        return new SimaticWriteDataArea(config.getAddress(), data);
+        return new SimaticWriteDataArea(config.getAddress(), data, pduSize);
 
     }
 
@@ -355,9 +357,12 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
      * @param itemData
      *            Raw data
      */
-    public SimaticWriteDataArea(SimaticPLCAddress address, byte[] itemData) {
+    public SimaticWriteDataArea(SimaticPLCAddress address, byte[] itemData, int pduSize) {
         this.address = address;
         this.itemData = itemData;
+        if(pduSize >= 480) {
+        	dataLimit = MAX_PDU480_DATA_LENGTH;
+        }  
     }
 
     /**
@@ -474,9 +479,9 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                 || this.address.getSimaticDataType() == SimaticPLCDataTypes.BIT
                 || (itemAddress.addressByte > (this.address.addressByte + this.address.getDataLength()))
                 || ((itemAddress.addressByte + itemAddress.getDataLength()) < this.address.addressByte)
-                || (itemAddress.addressByte + itemAddress.getDataLength() - this.address.addressByte > MAX_DATA_LENGTH)
+                || (itemAddress.addressByte + itemAddress.getDataLength() - this.address.addressByte > dataLimit)
                 || (this.address.addressByte + this.getAddressSpaceLength()
-                        - itemAddress.addressByte > MAX_DATA_LENGTH);
+                        - itemAddress.addressByte > dataLimit);
     }
 
     public void insert(SimaticWriteDataArea data) {

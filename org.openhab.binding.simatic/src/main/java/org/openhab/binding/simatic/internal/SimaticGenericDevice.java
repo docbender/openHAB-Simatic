@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * Generic device class
  *
  * @author Vita Tucek
- * @since 1.9.0
+ * @since 1.14.0
  */
 public class SimaticGenericDevice implements SimaticIDevice {
     private static final Logger logger = LoggerFactory.getLogger(SimaticGenericDevice.class);
@@ -81,6 +81,9 @@ public class SimaticGenericDevice implements SimaticIDevice {
     protected SimaticReadQueue readAreasList = new SimaticReadQueue();
     /** try reconnect flag when read/write function failure **/
     protected AtomicBoolean tryReconnect = new AtomicBoolean(false);
+    /** PDU size **/
+    protected int pduSize = 0; 
+      
 
     public enum ProcessDataResult {
         OK,
@@ -229,7 +232,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     @Override
     public void sendData(String itemName, Command command, SimaticBindingConfig config) {
 
-        sendData(SimaticWriteDataArea.create(command, config));
+        sendData(SimaticWriteDataArea.create(command, config, pduSize));
     }
 
     /**
@@ -405,7 +408,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
             }
 
             if (readDataArea == null || readDataArea.isItemOutOfRange(item.getValue().getAddress())) {
-                readDataArea = new SimaticReadDataArea(item.getValue());
+                readDataArea = new SimaticReadDataArea(item.getValue(),pduSize);
                 readAreasList.put(readDataArea);
             } else {
                 try {

@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  * IP device class
  *
  * @author Vita Tucek
- * @since 1.9.0
+ * @since 1.14.0
  */
 public class SimaticTCP extends SimaticGenericDevice {
 
@@ -163,10 +163,13 @@ public class SimaticTCP extends SimaticGenericDevice {
         try {
             if (dc.connectPLC() == 0) {
                 if (logger.isInfoEnabled()) {
-                    logger.info("{} - connected", this.toString());
+                    logger.info("{} - connected. Max PDU size = {}", this.toString(), dc.maxPDUlength);
                 }
+                pduSize = dc.maxPDUlength;                
                 portState.setState(PortStates.LISTENING);
                 tryReconnect.set(false);
+                //prepare data after PDU is negotiated
+                prepareData();
                 connected = true;
             } else {
                 logger.error("{} - cannot connect to PLC", this.toString());

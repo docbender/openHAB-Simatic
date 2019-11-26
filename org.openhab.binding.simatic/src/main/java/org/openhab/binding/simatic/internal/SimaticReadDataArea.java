@@ -17,7 +17,7 @@ import org.openhab.binding.simatic.libnodave.Nodave;
  * Read / write area class
  *
  * @author Vita Tucek
- * @since 1.9.0
+ * @since 1.14.0
  */
 public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
     /** Maximum space between two useful data block **/
@@ -26,12 +26,17 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
     LinkedList<SimaticBindingConfig> items = new LinkedList<SimaticBindingConfig>();
     final SimaticPLCAddress startAddress;
     int areaLength = 0;
+    /** data limit PDU size depending **/
+    int dataLimit = MAX_DATA_LENGTH;
 
-    public SimaticReadDataArea(SimaticBindingConfig firstItem) {
+    public SimaticReadDataArea(SimaticBindingConfig firstItem, int pduSize) {
         startAddress = firstItem.getAddress();
         items.add(firstItem);
 
         areaLength = startAddress.getDataLength();
+        if(pduSize >= 480) {
+        	dataLimit = MAX_PDU480_DATA_LENGTH;
+        }        		
     }
 
     @Override
@@ -117,7 +122,7 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
         return itemAddress.getArea() != this.getArea()
                 || (this.getArea() == SimaticPLCAreaTypes.DB && !startAddress.DBNum.equals(itemAddress.DBNum))
                 || (itemAddress.addressByte + itemAddress.getDataLength()
-                        - this.startAddress.addressByte > MAX_DATA_LENGTH)
+                        - this.startAddress.addressByte > dataLimit)
                 || (itemAddress.addressByte
                         - (this.startAddress.addressByte + this.getAddressSpaceLength()) > GAP_LIMIT);
     }
