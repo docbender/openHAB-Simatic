@@ -396,7 +396,12 @@ public class SimaticGenericDevice implements SimaticIDevice {
         // -- AchilleGR
 
         readLock.lock();
-        logger.debug("{} - prepareData Locked", this.toString());
+        if(logger.isDebugEnabled()){
+        	logger.debug("{} - prepareData Locked", this.toString());
+        	int readLimit = pduSize > 0 ? pduSize-SimaticIReadWriteDataArea.READ_OVERHEAD : SimaticIReadWriteDataArea.MAX_DATA_LENGTH;
+        	int writeLimit = pduSize > 0 ? pduSize-SimaticIReadWriteDataArea.WRITE_OVERHEAD : SimaticIReadWriteDataArea.MAX_DATA_LENGTH;
+        	logger.debug("{} - read area data limit = {}B, write area data limit = {}B", this.toString(),readLimit,writeLimit);
+        }
         SimaticReadDataArea readDataArea = null;
         readAreasList.clear();
 

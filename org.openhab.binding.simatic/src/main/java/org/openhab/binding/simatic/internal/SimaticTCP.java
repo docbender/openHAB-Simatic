@@ -163,7 +163,7 @@ public class SimaticTCP extends SimaticGenericDevice {
         try {
             if (dc.connectPLC() == 0) {
                 if (logger.isInfoEnabled()) {
-                    logger.info("{} - connected. Max PDU size = {}", this.toString(), dc.maxPDUlength);
+                    logger.info("{} - connected. PDU size = {}B", this.toString(), dc.maxPDUlength);
                 }
                 pduSize = dc.maxPDUlength;                
                 portState.setState(PortStates.LISTENING);

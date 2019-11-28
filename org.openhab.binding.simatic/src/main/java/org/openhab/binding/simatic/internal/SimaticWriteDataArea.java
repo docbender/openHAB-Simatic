@@ -360,8 +360,8 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
     public SimaticWriteDataArea(SimaticPLCAddress address, byte[] itemData, int pduSize) {
         this.address = address;
         this.itemData = itemData;
-        if(pduSize >= 480) {
-        	dataLimit = MAX_PDU480_DATA_LENGTH;
+        if(pduSize > WRITE_OVERHEAD) {
+        	dataLimit = pduSize - WRITE_OVERHEAD;
         }  
     }
 

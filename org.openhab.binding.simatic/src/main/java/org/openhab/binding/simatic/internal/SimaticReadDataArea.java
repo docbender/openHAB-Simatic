@@ -34,8 +34,8 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
         items.add(firstItem);
 
         areaLength = startAddress.getDataLength();
-        if(pduSize >= 480) {
-        	dataLimit = MAX_PDU480_DATA_LENGTH;
+        if(pduSize > READ_OVERHEAD) {
+        	dataLimit = pduSize - READ_OVERHEAD;
         }        		
     }
 
