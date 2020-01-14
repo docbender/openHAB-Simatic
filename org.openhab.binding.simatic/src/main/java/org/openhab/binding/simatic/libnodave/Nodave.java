@@ -28,7 +28,7 @@ public class Nodave {
 
     public final static int MAX_RAW_LEN = 2048;
 
-    public static int Debug = 0; // Nodave.DEBUG_CONN | Nodave.DEBUG_EXCHANGE | Nodave.DEBUG_IFACE; // 0
+    public static int Debug = 0; //Nodave.DEBUG_CONN | Nodave.DEBUG_EXCHANGE | Nodave.DEBUG_PDU | Nodave.DEBUG_IFACE; // 0
 
     /*
      * Use these constants for parameter "area" in daveReadBytes and daveWriteBytes

@@ -188,6 +188,17 @@ public abstract class S7Connection {
 
     abstract public int exchange(PDU p1) throws IOException;
 
+    /**
+     * Read bytes from specified area and store it into prepared buffer
+     * 
+     * @param area Area type
+     * @param DBnum DB number
+     * @param start Start address
+     * @param len Length of data
+     * @param buffer Buffer for data
+     * @return
+     * @throws IOException
+     */
     public int readBytes(int area, int DBnum, int start, int len, byte[] buffer) throws IOException {
         int res = 0;
         semaphore.enter();

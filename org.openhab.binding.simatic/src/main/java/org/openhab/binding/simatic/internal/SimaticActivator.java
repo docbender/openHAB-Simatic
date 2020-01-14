@@ -23,7 +23,7 @@ public class SimaticActivator implements BundleActivator {
 
     private static Logger logger = LoggerFactory.getLogger(SimaticActivator.class);
 
-    private final String VERSION = "1.2.0";
+    private final String VERSION = "1.2.3";
 
     @Override
     public void start(BundleContext context) throws Exception {

@@ -43,24 +43,78 @@ public class TCPConnection extends S7Connection {
         PDUstartIn = 7;
         PDUstartOut = 7;
     }
+    
+    /**
+     * Read ISOonTCP packet. Data from next segment
+     * 
+     * @param destination
+     * @return
+     * @throws IOException
+     */
+    protected int readISOPacketNext(int destination) throws IOException {
+    	byte[] buffer = new byte[7];
+    	int len = 0;
+    	int res = iface.read(buffer, 0, 7);
+        if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
+            Nodave.dump(" read next packet", buffer, 0, res);
+        }
+        if (res == 7) {
+            len = 0x100 * (buffer[2] & 0xFF) + (buffer[3] & 0xFF);
+            if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
+                System.out.println("   expected packet len=" + len);
+                System.out.println("   TPKT version=" + buffer[0]);
+            }
+        } else {
+            return 0;
+        }
+        boolean lastSegment = (buffer[6]>>7 != 0); 
+        if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
+            System.out.println("   COTP length=" + buffer[4]);
+            System.out.println("   PDU type=0x" + Integer.toHexString(buffer[5]));
+            System.out.println("   PDU nr=" + (buffer[6] & 0x7F));
+            System.out.println("   Last segment=" + lastSegment);
+        }
+    	
+        res += iface.read(msgIn, destination, len - 7);
+        
+        if(!lastSegment)
+        	res += readISOPacketNext(destination + len - 7);
+        
+        return res;
+    }
 
+    /**
+     * Read ISOonTCP packet
+     * 
+     * @return
+     * @throws IOException
+     */
     protected int readISOPacket() throws IOException {
         int res = iface.read(msgIn, 0, 4);
+        int len = 0;
         if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
             Nodave.dump(" read packet", msgIn, 0, res);
         }
         if (res == 4) {
-            int len = 0x100 * (msgIn[2] & 0xFF) + (msgIn[3] & 0xFF);
+            len = 0x100 * (msgIn[2] & 0xFF) + (msgIn[3] & 0xFF);
             if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
                 System.out.println("   expected packet len=" + len);
+                System.out.println("   TPKT version=" + msgIn[0]);
             }
-            res += iface.read(msgIn, 4, len);
+            res += iface.read(msgIn, 4, len-4);
         } else {
             return 0;
         }
+        boolean lastSegment = (msgIn[6]>>7 != 0); 
         if ((Nodave.Debug & Nodave.DEBUG_EXCHANGE) != 0) {
             Nodave.dump(" read packet", msgIn, 0, res);
+            System.out.println("   COTP length=" + msgIn[4]);
+            System.out.println("   PDU type=0x" + Integer.toHexString(msgIn[5]));
+            System.out.println("   PDU nr=" + (msgIn[6] & 0x7F));
+            System.out.println("   Last segment=" + lastSegment);
         }
+        if(!lastSegment)
+        	res += readISOPacketNext(len);
         return res;
     }
 
