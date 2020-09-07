@@ -8,4 +8,4 @@ More about this can be found on wiki page: https://github.com/docbender/openHAB-
 
 Compiled binding is inserted into release branch: https://github.com/docbender/openHAB-Simatic/releases
 
-Binding is working with openHAB 1.8 and openHAB 2.0 (in 1.x compatibility mode)
+Binding is working with openHAB 3.0
