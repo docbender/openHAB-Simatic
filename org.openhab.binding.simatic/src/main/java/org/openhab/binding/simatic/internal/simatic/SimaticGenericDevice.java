@@ -1,0 +1,555 @@
+/**
+ * Copyright (c) 2010-2016, openHAB.org and others.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
+package org.openhab.binding.simatic.internal.simatic;
+
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.openhab.binding.simatic.internal.simatic.SimaticPortState.PortStates;
+import org.openhab.core.events.EventPublisher;
+import org.openhab.core.types.Command;
+import org.openhab.core.types.State;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Generic device class
+ *
+ * @author Vita Tucek
+ * @since 1.14.0
+ */
+public class SimaticGenericDevice implements SimaticIDevice {
+    private static final Logger logger = LoggerFactory.getLogger(SimaticGenericDevice.class);
+
+    private static final int RECONNECT_DELAY_MAX = 15;
+    private int rcTest = 0;
+    private int rcTestMax = 0;
+
+    /** device name ex.: plc,plc1, ... */
+    protected final String deviceName;
+    /** device ID ex.: 192.168.1.1, ... */
+    protected final String deviceID;
+    /** defines maximum resend count */
+    public final int MAX_RESEND_COUNT = 2;
+
+    protected EventPublisher eventPublisher;
+    /** item config */
+    // protected Map<String, SimaticBindingConfig> itemsConfig;
+
+    /** flag that device is connected */
+    protected boolean connected = false;
+    /** queue for commands */
+    protected final Deque<SimaticWriteDataArea> commandQueue = new LinkedList<SimaticWriteDataArea>();
+    /** State of socket */
+    public SimaticPortState portState = new SimaticPortState();
+    /** Lock for process commands to prevent run it twice **/
+    protected final Lock lock = new ReentrantLock();
+    protected final Lock readLock = new ReentrantLock();
+    /** Read PLC areas **/
+    protected SimaticReadQueue readAreasList = new SimaticReadQueue();
+    /** try reconnect flag when read/write function failure **/
+    protected AtomicBoolean tryReconnect = new AtomicBoolean(false);
+    /** PDU size **/
+    protected int pduSize = 0;
+
+    public enum ProcessDataResult {
+        OK,
+        DATA_NOT_COMPLETED,
+        PROCESSING_ERROR,
+        INVALID_CRC,
+        BAD_CONFIG,
+        NO_VALID_ADDRESS,
+        NO_VALID_ADDRESS_REWIND,
+        UNKNOWN_MESSAGE,
+        UNKNOWN_MESSAGE_REWIND
+    }
+
+    /**
+     * Constructor
+     *
+     * @param deviceName
+     * @param deviceID
+     */
+    public SimaticGenericDevice(String deviceName, String deviceID) {
+        this.deviceName = deviceName;
+        this.deviceID = deviceID;
+    }
+
+    /**
+     * Method to set binding configuration
+     *
+     * @param eventPublisher
+     * @param itemsConfig
+     * @param itemsInfoConfig
+     */
+    /*
+     * @Override
+     * public void setBindingData(EventPublisher eventPublisher, Map<String, SimaticBindingConfig> itemsConfig,
+     * Map<String, SimaticInfoBindingConfig> itemsInfoConfig) {
+     * this.eventPublisher = eventPublisher;
+     * 
+     * // device item list
+     * List<Map.Entry<String, SimaticBindingConfig>> list = new LinkedList<Map.Entry<String, SimaticBindingConfig>>();
+     * 
+     * for (Map.Entry<String, SimaticBindingConfig> item : itemsConfig.entrySet()) {
+     * if (item.getValue().device.equals(this.deviceName)) {
+     * list.add(item);
+     * }
+     * }
+     * 
+     * // sort by address
+     * Collections.sort(list, new Comparator<Map.Entry<String, SimaticBindingConfig>>() {
+     * 
+     * @Override
+     * public int compare(Map.Entry<String, SimaticBindingConfig> o1, Map.Entry<String, SimaticBindingConfig> o2) {
+     * return (o1.getValue().address).compareTo(o2.getValue().address);
+     * }
+     * });
+     * 
+     * Map<String, SimaticBindingConfig> deviceItems = new LinkedHashMap<String, SimaticBindingConfig>();
+     * for (Map.Entry<String, SimaticBindingConfig> entry : list) {
+     * deviceItems.put(entry.getKey(), entry.getValue());
+     * }
+     * 
+     * this.itemsConfig = deviceItems;
+     * 
+     * this.portState.setBindingData(eventPublisher, itemsInfoConfig, this.deviceName);
+     * }
+     */
+    /**
+     * Method to clear inner binding configuration
+     */
+    /*
+     * @Override
+     * public void unsetBindingData() {
+     * this.eventPublisher = null;
+     * this.itemsConfig = null;
+     * }
+     */
+
+    /**
+     * Check if port is opened
+     *
+     * @return
+     */
+    public boolean isConnected() {
+        return connected;
+    }
+
+    /**
+     * Open
+     *
+     * @see org.openhab.binding.SimaticIDevice.internal.SimaticIDevice#open()
+     */
+    @Override
+    public Boolean open() {
+        logger.warn("{} - Opening... cannot open generic device", toString());
+
+        return false;
+    }
+
+    /**
+     * Close
+     *
+     * @see org.openhab.binding.SimaticIDevice.internal.SimaticIDevice#close()
+     */
+    @Override
+    public void close() {
+        logger.warn("{} - Closing... cannot close generic device", toString());
+
+        connected = false;
+    }
+
+    /**
+     * Reconnect device
+     */
+    public boolean reconnect() {
+        logger.info("{}: Trying to reconnect", toString());
+
+        close();
+        return open();
+    }
+
+    /**
+     * Reconnect device
+     */
+    public void reconnectWithDelaying() {
+
+        logger.debug("reconnectWithDelaying(): {}/{}/{}", rcTest, rcTestMax, RECONNECT_DELAY_MAX);
+
+        if (rcTest < rcTestMax) {
+            rcTest++;
+            return;
+        }
+
+        if (reconnect()) {
+            rcTest = 0;
+            rcTestMax = 0;
+        } else {
+            if (rcTestMax <= RECONNECT_DELAY_MAX) {
+                rcTestMax++;
+            }
+            rcTest = 0;
+        }
+    }
+
+    /**
+     * Send command into device channel
+     *
+     * @see org.openhab.binding.SimaticIDevice.internal.SimaticIDevice#sendData(java.lang.String,
+     *      org.openhab.core.types.Command)
+     */
+    @Override
+    public void sendData(String itemName, Command command) {
+        // TODO
+        // sendData(SimaticWriteDataArea.create(command, config, pduSize));
+    }
+
+    /**
+     * Add compiled data item to sending queue
+     *
+     * @param data
+     */
+    public void sendData(SimaticWriteDataArea data) {
+        if (data != null) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("{}: Adding command into queue", toString());
+            }
+
+            // lock queue
+            lock.lock();
+
+            if (commandQueue.size() == 0) {
+                // add data
+                commandQueue.addFirst(data);
+            } else {
+                for (SimaticWriteDataArea item : commandQueue) {
+                    if (!item.isItemOutOfRange(data.getAddress())) {
+                        item.insert(data);
+
+                        break;
+                    }
+                }
+            }
+            // unlock queue
+            lock.unlock();
+
+            processCommandQueue();
+        } else {
+            logger.warn("{}: Nothing to send. Empty data", toString());
+        }
+    }
+
+    /**
+     * Check if queue is not empty and send data to device
+     *
+     */
+    protected void processCommandQueue() {
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} - Processing commandQueue - length {}. Thread={}", toString(), commandQueue.size(),
+                    Thread.currentThread().getId());
+        }
+
+        // no reply expected
+        if (!canSend()) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("{} - Processing commandQueue - waiting", this.toString());
+            }
+            return;
+        }
+
+        if (!lock.tryLock()) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("{} - CommandQueue locked. Leaving processCommandQueue.", toString());
+            }
+            return;
+        }
+
+        SimaticWriteDataArea dataToSend = null;
+
+        try {
+            // queue is empty -> exit
+            if (commandQueue.isEmpty()) {
+                return;
+            }
+
+            // check if device responds and there is lot of commands
+            if (this.portState.getState() != PortStates.NOT_RESPONDING) {
+                dataToSend = commandQueue.poll();
+            }
+        } catch (Exception e) {
+
+        } finally {
+            lock.unlock();
+        }
+
+        if (dataToSend != null) {
+            sendDataOut(dataToSend);
+        }
+    }
+
+    protected boolean canSend() {
+        return this.isConnected();
+    }
+
+    /**
+     * Write data into device stream
+     *
+     * @param data
+     *            Item data with compiled packet
+     * @return
+     *         Return true when data were sent
+     */
+    protected boolean sendDataOut(SimaticWriteDataArea data) {
+
+        logger.warn("{} - Generic device cant send data", this.toString());
+
+        return false;
+    }
+
+    /**
+     * @see org.openhab.binding.SimaticIDevice.internal.SimaticIDevice#checkNewData()
+     */
+    @Override
+    public void checkNewData() {
+
+        if (isConnected()) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("{} - checkNewData() is called", toString());
+            }
+
+            if (!readLock.tryLock()) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("{} - Reading already in progress", toString());
+                }
+                return;
+            }
+
+            for (SimaticReadDataArea item : readAreasList.getData()) {
+                // Read data depend on connection type
+            }
+
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "DeviceID " + deviceID;
+    }
+
+    /**
+     * After item configuration is loaded this method prepare reading areas for this device
+     */
+    public void prepareData() {
+        /*
+         * if (itemsConfig == null) {
+         * return;
+         * }
+         */
+        // // sort items by address
+        // List<Map.Entry<String, SimaticBindingConfig>> list = new LinkedList<Map.Entry<String, SimaticBindingConfig>>(
+        // itemsConfig.entrySet());
+        //
+        // Collections.sort(list, new Comparator<Map.Entry<String, SimaticBindingConfig>>() {
+        // @Override
+        // public int compare(Map.Entry<String, SimaticBindingConfig> o1, Map.Entry<String, SimaticBindingConfig> o2) {
+        // return (o1.getValue().address).compareTo(o2.getValue().address);
+        // }
+        // });
+
+        // This lock achieves two things:
+        // 1) It blocks until checkNewData finishes reading, so that readAreasList isn't null white checkNewData access
+        // it
+        // 2) It doesn't allow checkNewData to run until readAreasList is propagated
+        // -- AchilleGR
+
+        readLock.lock();
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} - prepareData Locked", this.toString());
+            int readLimit = pduSize > 0 ? pduSize - SimaticIReadWriteDataArea.READ_OVERHEAD
+                    : SimaticIReadWriteDataArea.MAX_DATA_LENGTH;
+            int writeLimit = pduSize > 0 ? pduSize - SimaticIReadWriteDataArea.WRITE_OVERHEAD
+                    : SimaticIReadWriteDataArea.MAX_DATA_LENGTH;
+            logger.debug("{} - read area data limit = {}B, write area data limit = {}B", this.toString(), readLimit,
+                    writeLimit);
+        }
+        SimaticReadDataArea readDataArea = null;
+        readAreasList.clear();
+
+        /*
+         * // prepare read queues
+         * for (Map.Entry<String, SimaticBindingConfig> item : itemsConfig.entrySet()) {
+         * // no data with output direction
+         * if (item.getValue().direction == 2) {
+         * continue;
+         * }
+         * 
+         * if (readDataArea == null || readDataArea.isItemOutOfRange(item.getValue().getAddress())) {
+         * readDataArea = new SimaticReadDataArea(item.getValue(), pduSize);
+         * readAreasList.put(readDataArea);
+         * } else {
+         * try {
+         * readDataArea.addItem(item.getValue());
+         * } catch (Exception e) {
+         * logger.error(e.getMessage());
+         * }
+         * }
+         * }
+         */
+
+        if (logger.isDebugEnabled()) {
+            StringBuilder message = new StringBuilder();
+            message.append(String.format("%s - readAreas(Size=%d):", this.toString(), readAreasList.data.size()));
+
+            for (SimaticReadDataArea i : readAreasList.getData()) {
+                message.append(i.toString());
+                message.append(";");
+            }
+
+            logger.debug(message.toString());
+        }
+        logger.debug("{} - prepareData Unlocking", this.toString());
+        readLock.unlock();
+    }
+
+    /**
+     * Method decode incoming data and on success post this into openHAB
+     *
+     * @param item
+     * @param buffer
+     * @param position
+     */
+    /*
+     * public void postValue(SimaticBindingConfig item, byte[] buffer, int position) {
+     * // logger.debug("item={}", item.toString());
+     * // logger.debug("buffer={}", buffer.length);
+     * // logger.debug("position={}", position);
+     * // logger.debug("item len={}", item.getDataLength());
+     * 
+     * ByteBuffer bb = ByteBuffer.wrap(buffer, position, item.getDataLength());
+     * State state = null;
+     * Class<?> itemclass = item.getOpenHabItem().getClass();
+     * 
+     * // no byte swap for array
+     * // if (item.datatype == SimaticTypes.ARRAY) {
+     * bb.order(ByteOrder.BIG_ENDIAN);
+     * // } else {
+     * // bb.order(ByteOrder.LITTLE_ENDIAN);
+     * // }
+     * 
+     * if (item.datatype == SimaticTypes.ARRAY) {
+     * if (itemclass.isAssignableFrom(StringItem.class)) {
+     * String str = new String(buffer, position, item.getDataLength());
+     * state = new StringType(str);
+     * } else {
+     * logger.warn("{} - Incoming data item {} - Array is only supported for string item.", toString(),
+     * item.getName());
+     * }
+     * } else {
+     * 
+     * if (!itemclass.isAssignableFrom(SwitchItem.class) && !itemclass.isAssignableFrom(DimmerItem.class)
+     * && itemclass.isAssignableFrom(ColorItem.class)) {
+     * if (item.address.dataType != SimaticPLCDataTypes.DWORD) {
+     * logger.warn("{} - Incoming data item {} - Color item must have DWORD address", toString(),
+     * item.getName());
+     * } else {
+     * byte b0 = bb.get();
+     * byte b1 = bb.get();
+     * byte b2 = bb.get();
+     * 
+     * if (item.getDataType() == SimaticTypes.HSB) {
+     * state = new HSBType(new DecimalType(b0), new PercentType(b1), new PercentType(b2));
+     * } else if (item.getDataType() == SimaticTypes.RGB) {
+     * state = new HSBType(new Color(b0, b1, b2));
+     * } else if (item.getDataType() == SimaticTypes.RGBW) {
+     * state = new HSBType(new Color(b0 & 0xFF, b1 & 0xFF, b2 & 0xFF));
+     * } else {
+     * logger.warn("{} - Incoming data item {} - Unsupported color type {}.", toString(),
+     * item.getName(), item.getDataType());
+     * }
+     * }
+     * } else {
+     * if ((item.datatype == SimaticTypes.FLOAT) && itemclass.isAssignableFrom(NumberItem.class)) {
+     * if (item.address.dataType == SimaticPLCDataTypes.DWORD) {
+     * state = new DecimalType(bb.getFloat());
+     * } else {
+     * logger.warn("{} - Incoming data item {} - Float is only supported with DWORD address.",
+     * toString(), item.getName());
+     * }
+     * } else {
+     * int intValue = 0;
+     * 
+     * if (item.address.dataType == SimaticPLCDataTypes.BIT) {
+     * intValue = (bb.get() & (int) Math.pow(2, item.getAddress().getBitOffset())) != 0 ? 1 : 0;
+     * } else if (item.address.dataType == SimaticPLCDataTypes.BYTE) {
+     * intValue = bb.get();
+     * } else if (item.address.dataType == SimaticPLCDataTypes.WORD) {
+     * intValue = bb.getShort();
+     * } else if (item.address.dataType == SimaticPLCDataTypes.DWORD) {
+     * intValue = bb.getInt();
+     * }
+     * 
+     * if (itemclass.isAssignableFrom(NumberItem.class)) {
+     * state = new DecimalType(intValue);
+     * } else if (itemclass.isAssignableFrom(SwitchItem.class)) {
+     * if (intValue == 1) {
+     * state = OnOffType.ON;
+     * } else {
+     * state = OnOffType.OFF;
+     * }
+     * } else if (itemclass.isAssignableFrom(DimmerItem.class)) {
+     * state = new PercentType(intValue);
+     * } else if (itemclass.isAssignableFrom(ContactItem.class)) {
+     * if (intValue == 1) {
+     * state = OpenClosedType.OPEN;
+     * } else {
+     * state = OpenClosedType.CLOSED;
+     * }
+     * } else if (itemclass.isAssignableFrom(RollershutterItem.class)) {
+     * state = new PercentType((intValue & 0xFF00) >> 8);
+     * } else {
+     * logger.warn("{} - Incoming data item {} - Class {} is not supported.", toString(),
+     * item.getName(), itemclass.toString());
+     * }
+     * }
+     * }
+     * }
+     * 
+     * postState(item.getName(), state);
+     * }
+     */
+    /**
+     * Method post item state into openHAB
+     *
+     * @param itemName
+     * @param state
+     */
+    public void postState(String itemName, State state) {
+        if (state == null) {
+            logger.warn("{} - Incoming data item {} - Unknown  state", toString(), itemName);
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("{} - Incoming data - item:{}/state:{}", toString(), itemName, state);
+            }
+            /*
+             * if (eventPublisher != null) {
+             * eventPublisher.postUpdate(itemName, state);
+             * }
+             */
+        }
+    }
+
+    public boolean shouldReconnect() {
+        return tryReconnect.get();
+    }
+}
