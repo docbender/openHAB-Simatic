@@ -12,19 +12,17 @@
  */
 package org.openhab.binding.simatic.internal.handler;
 
-import static org.openhab.binding.simatic.internal.simaticBindingConstants.VERSION;
-
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
-import org.openhab.binding.simatic.internal.config.simaticBridgeConfiguration;
+import org.openhab.binding.simatic.internal.config.SimaticBridgeConfiguration;
 import org.openhab.binding.simatic.internal.simatic.SimaticGenericDevice;
 import org.openhab.binding.simatic.internal.simatic.SimaticTCP;
 import org.openhab.binding.simatic.internal.simatic.SimaticTCP200;
 import org.openhab.core.thing.Bridge;
 import org.openhab.core.thing.ChannelUID;
+import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
 import org.openhab.core.thing.ThingStatusDetail;
 import org.openhab.core.thing.binding.BaseBridgeHandler;
@@ -43,13 +41,13 @@ import org.slf4j.LoggerFactory;
  *
  */
 @NonNullByDefault
-public class simaticBridgeHandler extends BaseBridgeHandler {
+public class SimaticBridgeHandler extends BaseBridgeHandler {
 
-    private final Logger logger = LoggerFactory.getLogger(simaticBridgeHandler.class);
+    private final Logger logger = LoggerFactory.getLogger(SimaticBridgeHandler.class);
 
     private final int DEFAULT_SCANTIME = 1000;
 
-    private @Nullable simaticBridgeConfiguration config;
+    private @Nullable SimaticBridgeConfiguration config;
 
     public @Nullable SimaticGenericDevice connection = null;
 
@@ -58,15 +56,14 @@ public class simaticBridgeHandler extends BaseBridgeHandler {
     // devices
     // private Map<String, SimaticGenericDevice> devices = new HashMap<String, SimaticGenericDevice>();
 
-    public simaticBridgeHandler(Bridge bridge) {
+    public SimaticBridgeHandler(Bridge bridge) {
         super(bridge);
     }
 
     @SuppressWarnings("null")
     @Override
     public void initialize() {
-        logger.debug("Simatic binding (v.{}) bridge has been started .", VERSION);
-        config = getConfigAs(simaticBridgeConfiguration.class);
+        config = getConfigAs(SimaticBridgeConfiguration.class);
 
         var ip = config.ipAddress;
 
@@ -74,6 +71,9 @@ public class simaticBridgeHandler extends BaseBridgeHandler {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "No IP address");
             return;
         }
+
+        logger.debug("{} - Bridge configuration: IP={},Rack={},Slot={},Comm={},Is200={}", getThing().getLabel(), ip,
+                config.rack, config.slot, config.communicationType, config.isS7200);
 
         // S7-200 PLC
         if (config.isS7200) {
@@ -84,19 +84,22 @@ public class simaticBridgeHandler extends BaseBridgeHandler {
 
         // temporarily status
         updateStatus(ThingStatus.UNKNOWN);
-
+        // FIXME
+        return;
         // background initialization:
-        scheduler.execute(() -> {
-            if (connection.open()) {
-                updateStatus(ThingStatus.ONLINE);
-
-                periodicJob = scheduler.scheduleAtFixedRate(() -> {
-                    execute();
-                }, 0, DEFAULT_SCANTIME, TimeUnit.MILLISECONDS);
-            } else {
-                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
-            }
-        });
+        /*
+         * scheduler.execute(() -> {
+         * if (connection.open()) {
+         * updateStatus(ThingStatus.ONLINE);
+         * } else {
+         * updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
+         * }
+         *
+         * periodicJob = scheduler.scheduleAtFixedRate(() -> {
+         * execute();
+         * }, 0, DEFAULT_SCANTIME, TimeUnit.MILLISECONDS);
+         * });
+         */
     }
 
     /**
@@ -107,7 +110,7 @@ public class simaticBridgeHandler extends BaseBridgeHandler {
         if (connection == null) {
             return;
         }
-
+        // TODO: move into SimaticTCP / SimaticGenericDevice
         if (!connection.isConnected() || connection.shouldReconnect()) {
             connection.reconnectWithDelaying();
         }
@@ -126,11 +129,25 @@ public class simaticBridgeHandler extends BaseBridgeHandler {
                 periodicJob.cancel(true);
             }
         }
-        logger.debug("Simatic binding bridge has been stopped.");
+        logger.debug("{} - bridge has been stopped", getThing().getLabel());
     }
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         // no command for bridge
+    }
+
+    /**
+     *
+     */
+    public void updateConfig() {
+        int channelCount = 0;
+
+        for (Thing th : getThing().getThings()) {
+            var channels = ((SimaticGenericHandler) th.getHandler()).channels;
+            channelCount += channels.size();
+        }
+
+        logger.debug("{} - updating {} channels", getThing().getLabel(), channelCount);
     }
 }
