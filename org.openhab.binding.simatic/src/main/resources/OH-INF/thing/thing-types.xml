@@ -97,7 +97,7 @@
 	<channel-type id="chContact">
 		<item-type>Contact</item-type>
 		<label>Open/Close Contact</label>
-		<description>Simatic data type is Byte. 0 - Close, 1 - Open</description>
+		<description>Simatic data type is Byte or Bit. 0 - Close, 1 - Open</description>
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>
@@ -112,7 +112,7 @@
 	<channel-type id="chSwitch">
 		<item-type>Switch</item-type>
 		<label>On/Off Switch</label>
-		<description>Simatic data type is Byte. 0 - Off, 1 - On</description>
+		<description>Simatic data type is Byte or Bit. 0 - Off, 1 - On</description>
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>
@@ -142,7 +142,7 @@
 	<channel-type id="chRollershutter">
 		<item-type>Rollershutter</item-type>
 		<label>Rollershutter</label>
-		<description>Simatic data type is Word. Lower byte for position, upper byte for StopMove/UpDown command -
+		<description>Simatic data type is Byte. Status byte for position (0-100), command byte for StopMove/UpDown -
 			1-Move,2-Stop,4-Up,8-Down</description>
 		<config-description>
 			<parameter name="stateAddress" type="text">
