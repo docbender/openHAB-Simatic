@@ -12,7 +12,7 @@
  */
 package org.openhab.binding.simatic.internal.handler;
 
-import static org.openhab.binding.simatic.internal.simaticBindingConstants.*;
+import static org.openhab.binding.simatic.internal.SimaticBindingConstants.*;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,19 +29,22 @@ import org.openhab.core.thing.binding.ThingHandlerFactory;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * The {@link simaticHandlerFactory} is responsible for creating things and thing
+ * The {@link SimaticHandlerFactory} is responsible for creating things and thing
  * handlers.
  *
  * @author VitaTucek - Initial contribution
  */
 @NonNullByDefault
 @Component(configurationPid = "binding.simatic", service = ThingHandlerFactory.class)
-public class simaticHandlerFactory extends BaseThingHandlerFactory {
+public class SimaticHandlerFactory extends BaseThingHandlerFactory {
+    private final Logger logger = LoggerFactory.getLogger(SimaticHandlerFactory.class);
 
     private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Set.of(THING_TYPE_BRIDGE, THING_TYPE_GENERIC);
-    protected final Set<simaticBridgeHandler> bridges = Collections
+    protected final Set<SimaticBridgeHandler> bridges = Collections
             .synchronizedSet(Collections.newSetFromMap(new HashMap<>()));
 
     @Override
@@ -54,11 +57,11 @@ public class simaticHandlerFactory extends BaseThingHandlerFactory {
         final ThingTypeUID thingTypeUID = thing.getThingTypeUID();
 
         if (THING_TYPE_BRIDGE.equals(thingTypeUID)) {
-            var bridge = new simaticBridgeHandler((Bridge) thing);
+            var bridge = new SimaticBridgeHandler((Bridge) thing);
             bridges.add(bridge);
             return bridge;
         } else if (THING_TYPE_GENERIC.equals(thingTypeUID)) {
-            return new simaticGenericHandler(thing);
+            return new SimaticGenericHandler(thing);
         } else {
             throw new IllegalStateException("Unsupported Thing type " + thingTypeUID.toString());
         }
@@ -68,6 +71,7 @@ public class simaticHandlerFactory extends BaseThingHandlerFactory {
     @Override
     protected void activate(ComponentContext componentContext) {
         super.activate(componentContext);
+        logger.debug("Simatic binding (v.{}) has been started.", VERSION);
     }
 
     @Override

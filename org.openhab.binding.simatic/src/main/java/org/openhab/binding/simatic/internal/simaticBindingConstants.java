@@ -16,13 +16,13 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.core.thing.ThingTypeUID;
 
 /**
- * The {@link simaticBindingConstants} class defines common constants, which are
+ * The {@link SimaticBindingConstants} class defines common constants, which are
  * used across the whole binding.
  *
  * @author VitaTucek - Initial contribution
  */
 @NonNullByDefault
-public class simaticBindingConstants {
+public class SimaticBindingConstants {
 
     private static final String BINDING_ID = "simatic";
 
