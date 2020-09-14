@@ -13,11 +13,11 @@
 package org.openhab.binding.simatic.internal.config;
 
 /**
- * The {@link simaticBridgeConfiguration} class contains fields mapping thing configuration parameters.
+ * The {@link SimaticBridgeConfiguration} class contains fields mapping thing configuration parameters.
  *
  * @author VitaTucek - Initial contribution
  */
-public class simaticBridgeConfiguration {
+public class SimaticBridgeConfiguration {
 
     /**
      * Device IP address

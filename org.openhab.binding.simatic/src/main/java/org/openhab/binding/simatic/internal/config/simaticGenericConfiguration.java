@@ -13,10 +13,10 @@
 package org.openhab.binding.simatic.internal.config;
 
 /**
- * The {@link simaticGenericConfiguration} class contains fields mapping thing configuration parameters.
+ * The {@link SimaticGenericConfiguration} class contains fields mapping thing configuration parameters.
  *
  * @author VitaTucek - Initial contribution
  */
-public class simaticGenericConfiguration {
+public class SimaticGenericConfiguration {
 
 }
