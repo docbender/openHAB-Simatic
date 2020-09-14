@@ -84,7 +84,7 @@ public class SimaticPortState {
             this.state = state;
             this.changedSince = Calendar.getInstance();
 
-            // TODO
+            // FIXME
             /*
              * // update event bus
              * if (itemState != null) {
@@ -111,9 +111,9 @@ public class SimaticPortState {
      * public void setBindingData(EventPublisher eventPublisher, Map<String, SimaticInfoBindingConfig> itemsInfoConfig,
      * String deviceName) {
      * this.eventPublisher = eventPublisher;
-     * 
+     *
      * for (Map.Entry<String, SimaticInfoBindingConfig> item : itemsInfoConfig.entrySet()) {
-     * 
+     *
      * if (item.getValue().device.equals(deviceName)) {
      * // find right info type
      * if (item.getValue().infoType == InfoType.STATE) {

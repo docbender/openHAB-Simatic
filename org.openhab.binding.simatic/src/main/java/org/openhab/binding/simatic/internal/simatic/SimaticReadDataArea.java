@@ -8,6 +8,8 @@
  */
 package org.openhab.binding.simatic.internal.simatic;
 
+import java.util.LinkedList;
+
 import org.openhab.binding.simatic.internal.libnodave.Nodave;
 
 /**
@@ -20,23 +22,21 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
     /** Maximum space between two useful data block **/
     public static final int GAP_LIMIT = 32;
 
-    // LinkedList<SimaticBindingConfig> items = new LinkedList<SimaticBindingConfig>();
-    final SimaticPLCAddress startAddress = null;
+    LinkedList<SimaticBindingConfig> items = new LinkedList<SimaticBindingConfig>();
+    final SimaticPLCAddress startAddress;
     int areaLength = 0;
     /** data limit PDU size depending **/
     int dataLimit = MAX_DATA_LENGTH;
 
-    /*
-     * public SimaticReadDataArea(SimaticBindingConfig firstItem, int pduSize) {
-     * startAddress = firstItem.getAddress();
-     * items.add(firstItem);
-     *
-     * areaLength = startAddress.getDataLength();
-     * if (pduSize > READ_OVERHEAD) {
-     * dataLimit = pduSize - READ_OVERHEAD;
-     * }
-     * }
-     */
+    public SimaticReadDataArea(SimaticBindingConfig firstItem, int pduSize) {
+        startAddress = firstItem.getAddress();
+        items.add(firstItem);
+
+        areaLength = startAddress.getDataLength();
+        if (pduSize > READ_OVERHEAD) {
+            dataLimit = pduSize - READ_OVERHEAD;
+        }
+    }
 
     @Override
     public SimaticPLCAreaTypes getArea() {
@@ -80,26 +80,25 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
         return startAddress.getByteOffset() + areaLength;
     }
 
-    /*
-     * public void addItem(SimaticBindingConfig item) throws Exception {
-     * if (item.getArea() != this.getArea()) {
-     * throw new Exception("Adding item error. Mismatch area.");
-     * }
-     *
-     * items.add(item);
-     *
-     * int endAddress = startAddress.getByteOffset();
-     *
-     * for (SimaticBindingConfig i : items) {
-     * int itemEnd = i.getAddress().getByteOffset() + i.getAddress().getDataLength();
-     * if (itemEnd > endAddress) {
-     * endAddress = itemEnd;
-     * }
-     * }
-     *
-     * areaLength = endAddress - startAddress.getByteOffset();
-     * }
-     */
+    public void addItem(SimaticBindingConfig item) throws Exception {
+        if (item.getArea() != this.getArea()) {
+            throw new Exception("Adding item error. Mismatch area.");
+        }
+
+        items.add(item);
+
+        int endAddress = startAddress.getByteOffset();
+
+        for (SimaticBindingConfig i : items) {
+            int itemEnd = i.getAddress().getByteOffset() + i.getAddress().getDataLength();
+            if (itemEnd > endAddress) {
+                endAddress = itemEnd;
+            }
+        }
+
+        areaLength = endAddress - startAddress.getByteOffset();
+    }
+
     @Override
     public boolean isItemOutOfRange(SimaticPLCAddress itemAddress) {
         // Logger logger = LoggerFactory.getLogger(SimaticPLCAddress.class);
@@ -135,9 +134,8 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
             return getArea().toString() + getStartAddress() + "-" + getArea().toString() + getEndByteOffset();
         }
     }
-    /*
-     * public LinkedList<SimaticBindingConfig> getItems() {
-     * return items;
-     * }
-     */
+
+    public LinkedList<SimaticBindingConfig> getItems() {
+        return items;
+    }
 }

@@ -242,6 +242,11 @@ public class SimaticTCP extends SimaticGenericDevice {
             logger.debug("{} - Sending data to device", this.toString());
         }
 
+        if (!isConnected()) {
+            logger.debug("{} - Not connected. Sent discarted.", this.toString());
+            return false;
+        }
+
         if (data.getAddress().getSimaticDataType() != SimaticPLCDataTypes.BIT) {
             if (logger.isDebugEnabled()) {
                 logger.debug("{} - writeBytes(area={},db={},adr={},len={}, data={})", this.toString(),
@@ -257,10 +262,6 @@ public class SimaticTCP extends SimaticGenericDevice {
             }
 
             try {
-                // If the connection is closed, this is null -- AchilleGR
-                if (dc == null) {
-                    throw new IOException("dc is null");
-                }
                 int result = dc.writeBytes(data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
                         data.getAddressSpaceLength(), data.getData());
                 if (result != 0) {
@@ -296,10 +297,6 @@ public class SimaticTCP extends SimaticGenericDevice {
             }
             int result;
             try {
-                // If the connection is closed, this is null -- AchilleGR
-                if (dc == null) {
-                    throw new IOException("dc is null");
-                }
                 result = dc.writeBits(data.getAreaIntFormat(), data.getDBNumber(),
                         8 * data.getAddress().getByteOffset() + data.getAddress().getBitOffset(),
                         data.getAddressSpaceLength(), data.getData());
@@ -332,31 +329,29 @@ public class SimaticTCP extends SimaticGenericDevice {
      */
     @Override
     public void checkNewData() {
-        if (isConnected()) {
+        if (!isConnected()) {
+            return;
+        }
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} - checkNewData() is called", toString());
+        }
+
+        if (!readLock.tryLock()) {
             if (logger.isDebugEnabled()) {
-                logger.debug("{} - checkNewData() is called", toString());
+                logger.debug("{} - Reading already in progress", toString());
             }
+            return;
+        }
 
-            if (!readLock.tryLock()) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("{} - Reading already in progress", toString());
-                }
-                return;
+        logger.debug("Locking");
 
-            }
-
-            logger.debug("Locking");
-            // tryLock() has already acquired the lock, this is not needed -- AchilleGR
-            // readLock.lock();
+        try {
             for (SimaticReadDataArea area : readAreasList.getData()) {
                 byte[] buffer = new byte[area.getAddressSpaceLength()];
 
                 int result;
                 try {
-                    // If the connection is closed, this is null -- AchilleGR
-                    if (dc == null) {
-                        throw new IOException("dc is null");
-                    }
                     result = dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
                             area.getAddressSpaceLength(), buffer);
                 } catch (IOException ex) {
@@ -367,8 +362,6 @@ public class SimaticTCP extends SimaticGenericDevice {
                         portState.setState(PortStates.RESPONSE_ERROR);
                         tryReconnect.set(true);
                     }
-                    logger.debug("Unlocking");
-                    readLock.unlock();
                     return;
                 }
 
@@ -383,8 +376,6 @@ public class SimaticTCP extends SimaticGenericDevice {
                             portState.setState(PortStates.RESPONSE_ERROR);
                             tryReconnect.set(true);
                         }
-                        logger.debug("Unlocking");
-                        readLock.unlock();
                         return;
                     } else {
                         continue;
@@ -397,16 +388,16 @@ public class SimaticTCP extends SimaticGenericDevice {
 
                 int start = area.getStartAddress();
 
-                /*
-                 * for (SimaticBindingConfig item : area.getItems()) {
-                 * if (logger.isTraceEnabled()) {
-                 * logger.trace("{} - PostValue for item={}", toString(), item.toString());
-                 * }
-                 * this.postValue(item, buffer, item.getAddress().getByteOffset() - start);
-                 * }
-                 */
+                for (SimaticBindingConfig item : area.getItems()) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("{} - PostValue for item={}", toString(), item.toString());
+                    }
+                    // this.postValue(item, buffer, item.getAddress().getByteOffset() - start);
+                }
             }
-
+        } catch (Exception ex) {
+            logger.error("{} - Read data error", toString(), ex);
+        } finally {
             logger.debug("Unlocking");
             readLock.unlock();
         }

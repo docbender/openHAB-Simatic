@@ -10,6 +10,7 @@ package org.openhab.binding.simatic.internal.simatic;
 
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -43,7 +44,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
 
     protected EventPublisher eventPublisher;
     /** item config */
-    // protected Map<String, SimaticBindingConfig> itemsConfig;
+    protected Map<String, SimaticBindingConfig> itemsConfig;
 
     /** flag that device is connected */
     protected boolean connected = false;
@@ -96,32 +97,32 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * public void setBindingData(EventPublisher eventPublisher, Map<String, SimaticBindingConfig> itemsConfig,
      * Map<String, SimaticInfoBindingConfig> itemsInfoConfig) {
      * this.eventPublisher = eventPublisher;
-     * 
+     *
      * // device item list
      * List<Map.Entry<String, SimaticBindingConfig>> list = new LinkedList<Map.Entry<String, SimaticBindingConfig>>();
-     * 
+     *
      * for (Map.Entry<String, SimaticBindingConfig> item : itemsConfig.entrySet()) {
      * if (item.getValue().device.equals(this.deviceName)) {
      * list.add(item);
      * }
      * }
-     * 
+     *
      * // sort by address
      * Collections.sort(list, new Comparator<Map.Entry<String, SimaticBindingConfig>>() {
-     * 
+     *
      * @Override
      * public int compare(Map.Entry<String, SimaticBindingConfig> o1, Map.Entry<String, SimaticBindingConfig> o2) {
      * return (o1.getValue().address).compareTo(o2.getValue().address);
      * }
      * });
-     * 
+     *
      * Map<String, SimaticBindingConfig> deviceItems = new LinkedHashMap<String, SimaticBindingConfig>();
      * for (Map.Entry<String, SimaticBindingConfig> entry : list) {
      * deviceItems.put(entry.getKey(), entry.getValue());
      * }
-     * 
+     *
      * this.itemsConfig = deviceItems;
-     * 
+     *
      * this.portState.setBindingData(eventPublisher, itemsInfoConfig, this.deviceName);
      * }
      */
@@ -210,7 +211,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
      */
     @Override
     public void sendData(String itemName, Command command) {
-        // TODO
+        // FIXME
         // sendData(SimaticWriteDataArea.create(command, config, pduSize));
     }
 
@@ -351,11 +352,11 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * After item configuration is loaded this method prepare reading areas for this device
      */
     public void prepareData() {
-        /*
-         * if (itemsConfig == null) {
-         * return;
-         * }
-         */
+
+        if (itemsConfig == null) {
+            return;
+        }
+
         // // sort items by address
         // List<Map.Entry<String, SimaticBindingConfig>> list = new LinkedList<Map.Entry<String, SimaticBindingConfig>>(
         // itemsConfig.entrySet());
@@ -386,26 +387,24 @@ public class SimaticGenericDevice implements SimaticIDevice {
         SimaticReadDataArea readDataArea = null;
         readAreasList.clear();
 
-        /*
-         * // prepare read queues
-         * for (Map.Entry<String, SimaticBindingConfig> item : itemsConfig.entrySet()) {
-         * // no data with output direction
-         * if (item.getValue().direction == 2) {
-         * continue;
-         * }
-         * 
-         * if (readDataArea == null || readDataArea.isItemOutOfRange(item.getValue().getAddress())) {
-         * readDataArea = new SimaticReadDataArea(item.getValue(), pduSize);
-         * readAreasList.put(readDataArea);
-         * } else {
-         * try {
-         * readDataArea.addItem(item.getValue());
-         * } catch (Exception e) {
-         * logger.error(e.getMessage());
-         * }
-         * }
-         * }
-         */
+        // prepare read queues
+        for (Map.Entry<String, SimaticBindingConfig> item : itemsConfig.entrySet()) {
+            // no data with output direction
+            if (item.getValue().direction == 2) {
+                continue;
+            }
+
+            if (readDataArea == null || readDataArea.isItemOutOfRange(item.getValue().getAddress())) {
+                readDataArea = new SimaticReadDataArea(item.getValue(), pduSize);
+                readAreasList.put(readDataArea);
+            } else {
+                try {
+                    readDataArea.addItem(item.getValue());
+                } catch (Exception e) {
+                    logger.error(e.getMessage());
+                }
+            }
+        }
 
         if (logger.isDebugEnabled()) {
             StringBuilder message = new StringBuilder();
@@ -429,24 +428,25 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * @param buffer
      * @param position
      */
+    // FIXME
     /*
      * public void postValue(SimaticBindingConfig item, byte[] buffer, int position) {
      * // logger.debug("item={}", item.toString());
      * // logger.debug("buffer={}", buffer.length);
      * // logger.debug("position={}", position);
      * // logger.debug("item len={}", item.getDataLength());
-     * 
+     *
      * ByteBuffer bb = ByteBuffer.wrap(buffer, position, item.getDataLength());
      * State state = null;
      * Class<?> itemclass = item.getOpenHabItem().getClass();
-     * 
+     *
      * // no byte swap for array
      * // if (item.datatype == SimaticTypes.ARRAY) {
      * bb.order(ByteOrder.BIG_ENDIAN);
      * // } else {
      * // bb.order(ByteOrder.LITTLE_ENDIAN);
      * // }
-     * 
+     *
      * if (item.datatype == SimaticTypes.ARRAY) {
      * if (itemclass.isAssignableFrom(StringItem.class)) {
      * String str = new String(buffer, position, item.getDataLength());
@@ -456,7 +456,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * item.getName());
      * }
      * } else {
-     * 
+     *
      * if (!itemclass.isAssignableFrom(SwitchItem.class) && !itemclass.isAssignableFrom(DimmerItem.class)
      * && itemclass.isAssignableFrom(ColorItem.class)) {
      * if (item.address.dataType != SimaticPLCDataTypes.DWORD) {
@@ -466,7 +466,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * byte b0 = bb.get();
      * byte b1 = bb.get();
      * byte b2 = bb.get();
-     * 
+     *
      * if (item.getDataType() == SimaticTypes.HSB) {
      * state = new HSBType(new DecimalType(b0), new PercentType(b1), new PercentType(b2));
      * } else if (item.getDataType() == SimaticTypes.RGB) {
@@ -488,7 +488,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * }
      * } else {
      * int intValue = 0;
-     * 
+     *
      * if (item.address.dataType == SimaticPLCDataTypes.BIT) {
      * intValue = (bb.get() & (int) Math.pow(2, item.getAddress().getBitOffset())) != 0 ? 1 : 0;
      * } else if (item.address.dataType == SimaticPLCDataTypes.BYTE) {
@@ -498,7 +498,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * } else if (item.address.dataType == SimaticPLCDataTypes.DWORD) {
      * intValue = bb.getInt();
      * }
-     * 
+     *
      * if (itemclass.isAssignableFrom(NumberItem.class)) {
      * state = new DecimalType(intValue);
      * } else if (itemclass.isAssignableFrom(SwitchItem.class)) {
@@ -524,10 +524,11 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * }
      * }
      * }
-     * 
+     *
      * postState(item.getName(), state);
      * }
      */
+
     /**
      * Method post item state into openHAB
      *
@@ -541,6 +542,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
             if (logger.isTraceEnabled()) {
                 logger.trace("{} - Incoming data - item:{}/state:{}", toString(), itemName, state);
             }
+            // FIXME
             /*
              * if (eventPublisher != null) {
              * eventPublisher.postUpdate(itemName, state);
