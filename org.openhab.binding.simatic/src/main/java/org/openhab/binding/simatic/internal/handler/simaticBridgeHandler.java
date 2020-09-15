@@ -12,11 +12,13 @@
  */
 package org.openhab.binding.simatic.internal.handler;
 
+import java.util.ArrayList;
 import java.util.concurrent.ScheduledFuture;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.simatic.internal.config.SimaticBridgeConfiguration;
+import org.openhab.binding.simatic.internal.simatic.SimaticChannel;
 import org.openhab.binding.simatic.internal.simatic.SimaticGenericDevice;
 import org.openhab.binding.simatic.internal.simatic.SimaticTCP;
 import org.openhab.binding.simatic.internal.simatic.SimaticTCP200;
@@ -142,12 +144,39 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
      */
     public void updateConfig() {
         int channelCount = 0;
+        int stateChannelCount = 0;
 
         for (Thing th : getThing().getThings()) {
-            var channels = ((SimaticGenericHandler) th.getHandler()).channels;
-            channelCount += channels.size();
+            var h = ((SimaticGenericHandler) th.getHandler());
+            if (h == null) {
+                continue;
+            }
+            channelCount += h.channels.size();
+            for (SimaticChannel ch : h.channels.values()) {
+                if (ch.getStateAddress() != null) {
+                    stateChannelCount++;
+                }
+            }
         }
 
-        logger.debug("{} - updating {} channels", getThing().getLabel(), channelCount);
+        ArrayList<SimaticChannel> stateItems = new ArrayList<SimaticChannel>(stateChannelCount);
+
+        for (Thing th : getThing().getThings()) {
+            var h = ((SimaticGenericHandler) th.getHandler());
+            if (h == null) {
+                continue;
+            }
+            for (SimaticChannel ch : h.channels.values()) {
+                if (ch.getStateAddress() != null) {
+                    stateItems.add(ch);
+                }
+            }
+        }
+
+        if (connection != null) {
+            connection.setDataAreas(stateItems);
+        }
+
+        logger.debug("{} - updating {} channels({} read)", getThing().getLabel(), channelCount, stateChannelCount);
     }
 }

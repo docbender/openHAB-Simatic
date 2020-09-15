@@ -8,9 +8,8 @@
  */
 package org.openhab.binding.simatic.internal.simatic;
 
-import java.nio.ByteBuffer;
-
 import org.openhab.binding.simatic.internal.libnodave.Nodave;
+import org.openhab.core.types.Command;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,12 +28,16 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
     /** data limit PDU size depending **/
     int dataLimit = MAX_DATA_LENGTH;
     // FIXME
+
+    public static SimaticWriteDataArea create(Command command, SimaticChannel config, int pduSize) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("create(): item:" + config.channelId.getAsString() + "|address:" + config.getCommandAddress());
+        }
+
+        return null;
+    }
+
     /*
-     * public static SimaticWriteDataArea create(Command command, SimaticBindingConfig config, int pduSize) {
-     * if (logger.isDebugEnabled()) {
-     * logger.debug("create(): item:" + config.getName() + "|datatype:" + config.getDataType());
-     * }
-     *
      * byte[] data = null;
      *
      * switch (config.getDataType()) {
@@ -329,9 +332,9 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
      * }
      *
      * return new SimaticWriteDataArea(config.getAddress(), data, pduSize);
-     *
      * }
      */
+
     protected byte[] itemData;
     protected SimaticPLCAddress address;
 
@@ -458,7 +461,7 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
     public boolean isItemOutOfRange(SimaticPLCAddress itemAddress) {
         // must be in area, eventually same DB, not bit, without any space between data, in max frame size
         return itemAddress.getArea() != this.getArea()
-                || (this.getArea() == SimaticPLCAreaTypes.DB && !address.DBNum.equals(itemAddress.DBNum))
+                || (this.getArea() == SimaticPLCAreaTypes.DB && !address.dBNum.equals(itemAddress.dBNum))
                 || itemAddress.getSimaticDataType() == SimaticPLCDataTypes.BIT
                 || this.address.getSimaticDataType() == SimaticPLCDataTypes.BIT
                 || (itemAddress.addressByte > (this.address.addressByte + this.address.getDataLength()))
@@ -468,62 +471,65 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
     }
 
     public void insert(SimaticWriteDataArea data) {
-        if (this.getStartAddress() > data.getStartAddress()) {
-            // new length
-            this.address.dataLength = (((this.getStartAddress()
-                    + this.getAddressSpaceLength()) > (data.getStartAddress() + data.getAddressSpaceLength()))
-                            ? (this.getStartAddress() + this.getAddressSpaceLength())
-                            : (data.getStartAddress() + data.getAddressSpaceLength()))
-                    - this.address.addressByte;
-            // data array
-            ByteBuffer newDataBuffer = ByteBuffer.wrap(new byte[this.address.dataLength]);
-            // put new data
-            newDataBuffer.put(data.getData());
-            // and behind rest of old
-            newDataBuffer.put(this.getData(),
-                    data.getAddressSpaceLength() - (this.getStartAddress() - data.getStartAddress()),
-                    this.getAddressSpaceLength()
-                            - (data.getAddressSpaceLength() - (this.getStartAddress() - data.getStartAddress())));
-            // new start address
-            this.address.addressByte = data.getStartAddress();
-            this.itemData = newDataBuffer.array();
-
-        } else if (this.getStartAddress() < data.getStartAddress()) {
-            if ((this.getStartAddress() + this.getAddressSpaceLength()) < (data.getStartAddress()
-                    + data.getAddressSpaceLength())) {
-                int oldDataLength = this.address.dataLength;
-                this.address.dataLength += (data.getStartAddress() + data.getAddressSpaceLength())
-                        - (this.getStartAddress() + this.getAddressSpaceLength());
-                // data array
-                byte[] newData = new byte[this.address.dataLength];
-                // old data
-                for (int i = 0; i < oldDataLength; i++) {
-                    newData[i] = this.itemData[i];
-                }
-                int offset = data.getStartAddress() - this.getStartAddress();
-                // then new data
-                for (int i = 0; i < data.getAddressSpaceLength(); i++) {
-                    newData[offset + i] = data.itemData[i];
-                }
-            }
-        } else if (this.getAddressSpaceLength() < data.getAddressSpaceLength()) {
-            int oldDataLength = this.address.dataLength;
-            this.address.dataLength += data.getAddressSpaceLength() - this.getAddressSpaceLength();
-            // data array
-            byte[] newData = new byte[this.address.dataLength];
-            // old data
-            for (int i = 0; i < oldDataLength; i++) {
-                newData[i] = this.itemData[i];
-            }
-            // then new data
-            for (int i = 0; i < data.getAddressSpaceLength(); i++) {
-                newData[i] = data.itemData[i];
-            }
-        } else {
-            // write new data over old
-            for (int i = 0; i < data.getAddressSpaceLength(); i++) {
-                itemData[i] = data.itemData[i];
-            }
-        }
+        // FIXME
+        /*
+         * if (this.getStartAddress() > data.getStartAddress()) {
+         * // new length
+         * this.address.dataLength = (((this.getStartAddress()
+         * + this.getAddressSpaceLength()) > (data.getStartAddress() + data.getAddressSpaceLength()))
+         * ? (this.getStartAddress() + this.getAddressSpaceLength())
+         * : (data.getStartAddress() + data.getAddressSpaceLength()))
+         * - this.address.addressByte;
+         * // data array
+         * ByteBuffer newDataBuffer = ByteBuffer.wrap(new byte[this.address.dataLength]);
+         * // put new data
+         * newDataBuffer.put(data.getData());
+         * // and behind rest of old
+         * newDataBuffer.put(this.getData(),
+         * data.getAddressSpaceLength() - (this.getStartAddress() - data.getStartAddress()),
+         * this.getAddressSpaceLength()
+         * - (data.getAddressSpaceLength() - (this.getStartAddress() - data.getStartAddress())));
+         * // new start address
+         * this.address.addressByte = data.getStartAddress();
+         * this.itemData = newDataBuffer.array();
+         *
+         * } else if (this.getStartAddress() < data.getStartAddress()) {
+         * if ((this.getStartAddress() + this.getAddressSpaceLength()) < (data.getStartAddress()
+         * + data.getAddressSpaceLength())) {
+         * int oldDataLength = this.address.dataLength;
+         * this.address.dataLength += (data.getStartAddress() + data.getAddressSpaceLength())
+         * - (this.getStartAddress() + this.getAddressSpaceLength());
+         * // data array
+         * byte[] newData = new byte[this.address.dataLength];
+         * // old data
+         * for (int i = 0; i < oldDataLength; i++) {
+         * newData[i] = this.itemData[i];
+         * }
+         * int offset = data.getStartAddress() - this.getStartAddress();
+         * // then new data
+         * for (int i = 0; i < data.getAddressSpaceLength(); i++) {
+         * newData[offset + i] = data.itemData[i];
+         * }
+         * }
+         * } else if (this.getAddressSpaceLength() < data.getAddressSpaceLength()) {
+         * int oldDataLength = this.address.dataLength;
+         * this.address.dataLength += data.getAddressSpaceLength() - this.getAddressSpaceLength();
+         * // data array
+         * byte[] newData = new byte[this.address.dataLength];
+         * // old data
+         * for (int i = 0; i < oldDataLength; i++) {
+         * newData[i] = this.itemData[i];
+         * }
+         * // then new data
+         * for (int i = 0; i < data.getAddressSpaceLength(); i++) {
+         * newData[i] = data.itemData[i];
+         * }
+         * } else {
+         * // write new data over old
+         * for (int i = 0; i < data.getAddressSpaceLength(); i++) {
+         * itemData[i] = data.itemData[i];
+         * }
+         * }
+         */
     }
 }

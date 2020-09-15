@@ -22,14 +22,14 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
     /** Maximum space between two useful data block **/
     public static final int GAP_LIMIT = 32;
 
-    LinkedList<SimaticBindingConfig> items = new LinkedList<SimaticBindingConfig>();
+    final LinkedList<SimaticChannel> items = new LinkedList<SimaticChannel>();
     final SimaticPLCAddress startAddress;
     int areaLength = 0;
     /** data limit PDU size depending **/
     int dataLimit = MAX_DATA_LENGTH;
 
-    public SimaticReadDataArea(SimaticBindingConfig firstItem, int pduSize) {
-        startAddress = firstItem.getAddress();
+    public SimaticReadDataArea(SimaticChannel firstItem, int pduSize) {
+        startAddress = firstItem.getStateAddress();
         items.add(firstItem);
 
         areaLength = startAddress.getDataLength();
@@ -80,8 +80,8 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
         return startAddress.getByteOffset() + areaLength;
     }
 
-    public void addItem(SimaticBindingConfig item) throws Exception {
-        if (item.getArea() != this.getArea()) {
+    public void addItem(SimaticChannel item) throws Exception {
+        if (item.getStateAddress().getArea() != this.getArea()) {
             throw new Exception("Adding item error. Mismatch area.");
         }
 
@@ -89,8 +89,8 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
 
         int endAddress = startAddress.getByteOffset();
 
-        for (SimaticBindingConfig i : items) {
-            int itemEnd = i.getAddress().getByteOffset() + i.getAddress().getDataLength();
+        for (SimaticChannel i : items) {
+            int itemEnd = i.getStateAddress().getByteOffset() + i.getStateAddress().getDataLength();
             if (itemEnd > endAddress) {
                 endAddress = itemEnd;
             }
@@ -119,7 +119,7 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
 
         // must be in area, eventually same DB, in range of maximal frame size and in defined gap space
         return itemAddress.getArea() != this.getArea()
-                || (this.getArea() == SimaticPLCAreaTypes.DB && !startAddress.DBNum.equals(itemAddress.DBNum))
+                || (this.getArea() == SimaticPLCAreaTypes.DB && !startAddress.dBNum.equals(itemAddress.dBNum))
                 || (itemAddress.addressByte + itemAddress.getDataLength() - this.startAddress.addressByte > dataLimit)
                 || (itemAddress.addressByte
                         - (this.startAddress.addressByte + this.getAddressSpaceLength()) > GAP_LIMIT);
@@ -135,7 +135,7 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
         }
     }
 
-    public LinkedList<SimaticBindingConfig> getItems() {
+    public LinkedList<SimaticChannel> getItems() {
         return items;
     }
 }

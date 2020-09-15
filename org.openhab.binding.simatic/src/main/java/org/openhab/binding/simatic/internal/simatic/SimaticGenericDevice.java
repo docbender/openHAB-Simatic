@@ -8,9 +8,11 @@
  */
 package org.openhab.binding.simatic.internal.simatic;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedList;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -44,7 +46,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
 
     protected EventPublisher eventPublisher;
     /** item config */
-    protected Map<String, SimaticBindingConfig> itemsConfig;
+    protected List<SimaticChannel> stateItems;
 
     /** flag that device is connected */
     protected boolean connected = false;
@@ -83,6 +85,16 @@ public class SimaticGenericDevice implements SimaticIDevice {
     public SimaticGenericDevice(String deviceName, String deviceID) {
         this.deviceName = deviceName;
         this.deviceID = deviceID;
+    }
+
+    @Override
+    public void setDataAreas(List<SimaticChannel> stateItems) {
+        this.stateItems = stateItems;
+        // prepare data if device is connected (depends on PDU size)
+        // FIXME
+        // if (isConnected()) {
+        prepareData();
+        // }
     }
 
     /**
@@ -210,9 +222,8 @@ public class SimaticGenericDevice implements SimaticIDevice {
      *      org.openhab.core.types.Command)
      */
     @Override
-    public void sendData(String itemName, Command command) {
-        // FIXME
-        // sendData(SimaticWriteDataArea.create(command, config, pduSize));
+    public void sendData(SimaticChannel item, Command command) {
+        sendData(SimaticWriteDataArea.create(command, item, pduSize));
     }
 
     /**
@@ -353,20 +364,25 @@ public class SimaticGenericDevice implements SimaticIDevice {
      */
     public void prepareData() {
 
-        if (itemsConfig == null) {
+        if (stateItems == null) {
             return;
         }
 
-        // // sort items by address
-        // List<Map.Entry<String, SimaticBindingConfig>> list = new LinkedList<Map.Entry<String, SimaticBindingConfig>>(
-        // itemsConfig.entrySet());
-        //
-        // Collections.sort(list, new Comparator<Map.Entry<String, SimaticBindingConfig>>() {
-        // @Override
-        // public int compare(Map.Entry<String, SimaticBindingConfig> o1, Map.Entry<String, SimaticBindingConfig> o2) {
-        // return (o1.getValue().address).compareTo(o2.getValue().address);
-        // }
-        // });
+        // sort items by address
+        Collections.sort(stateItems, new Comparator<SimaticChannel>() {
+            @Override
+            public int compare(SimaticChannel o1, SimaticChannel o2) {
+                var o1A = o1.getStateAddress();
+                if (o1A == null) {
+                    if (o2.getStateAddress() == null) {
+                        return 0;
+                    } else {
+                        return 1;
+                    }
+                }
+                return (o1A).compareTo(o2.getStateAddress());
+            }
+        });
 
         // This lock achieves two things:
         // 1) It blocks until checkNewData finishes reading, so that readAreasList isn't null white checkNewData access
@@ -388,18 +404,19 @@ public class SimaticGenericDevice implements SimaticIDevice {
         readAreasList.clear();
 
         // prepare read queues
-        for (Map.Entry<String, SimaticBindingConfig> item : itemsConfig.entrySet()) {
-            // no data with output direction
-            if (item.getValue().direction == 2) {
+        for (SimaticChannel item : stateItems) {
+            // no data for read
+            if (item.getStateAddress() == null) {
                 continue;
             }
 
-            if (readDataArea == null || readDataArea.isItemOutOfRange(item.getValue().getAddress())) {
-                readDataArea = new SimaticReadDataArea(item.getValue(), pduSize);
+            //
+            if (readDataArea == null || readDataArea.isItemOutOfRange(item.getStateAddress())) {
+                readDataArea = new SimaticReadDataArea(item, pduSize);
                 readAreasList.put(readDataArea);
             } else {
                 try {
-                    readDataArea.addItem(item.getValue());
+                    readDataArea.addItem(item);
                 } catch (Exception e) {
                     logger.error(e.getMessage());
                 }

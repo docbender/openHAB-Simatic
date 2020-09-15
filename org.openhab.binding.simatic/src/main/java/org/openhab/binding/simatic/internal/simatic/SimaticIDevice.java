@@ -8,6 +8,8 @@
  */
 package org.openhab.binding.simatic.internal.simatic;
 
+import java.util.List;
+
 import org.openhab.core.types.Command;
 
 /**
@@ -33,18 +35,24 @@ public interface SimaticIDevice {
     /**
      * Send data to device
      *
-     * @param itemName
-     *            Item name
+     * @param item
+     *            Channel data
      * @param command
      *            Command to send
      */
-    public void sendData(String itemName, Command command);
+    public void sendData(SimaticChannel item, Command command);
 
     /**
      * Check new data for all connected devices
      *
      */
     public void checkNewData();
+
+    /**
+     * Set read write areas
+     *
+     */
+    public void setDataAreas(List<SimaticChannel> stateItems);
 
     /**
      * Function return device string representation

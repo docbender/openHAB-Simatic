@@ -17,8 +17,8 @@ import java.util.Map;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
-import org.openhab.binding.simatic.internal.config.SimaticChannel;
 import org.openhab.binding.simatic.internal.config.SimaticGenericConfiguration;
+import org.openhab.binding.simatic.internal.simatic.SimaticChannel;
 import org.openhab.binding.simatic.internal.simatic.SimaticGenericDevice;
 import org.openhab.core.thing.Channel;
 import org.openhab.core.thing.ChannelUID;
@@ -84,7 +84,7 @@ public class SimaticGenericHandler extends BaseThingHandler {
 
             logger.debug("{} - channel added {}", thing.getLabel(), chConfig);
 
-            channels.put(chConfig.channelId, chConfig);
+            channels.put(channelUID, chConfig);
         }
 
         // get connection and update status
@@ -136,10 +136,6 @@ public class SimaticGenericHandler extends BaseThingHandler {
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
-        if (connection == null) {
-            return;
-        }
-
         logger.debug("{} - Command {} for channel {}", thing.getLabel(), command, channelUID);
 
         // get cached values
@@ -147,5 +143,17 @@ public class SimaticGenericHandler extends BaseThingHandler {
 
             // updateState(channelUID, value);
         }
+
+        if (connection == null) {
+            return;
+        }
+
+        if (!channels.containsKey(channels)) {
+            logger.error("{} - channel does not exists. ChannelUID={}", thing.getLabel(), channelUID);
+            return;
+        }
+        SimaticChannel channel = channels.get(channelUID);
+
+        connection.sendData(channel, command);
     }
 }
