@@ -8,6 +8,8 @@
  */
 package org.openhab.binding.simatic.internal.simatic;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
@@ -17,10 +19,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.openhab.binding.simatic.internal.SimaticBindingConstants;
 import org.openhab.binding.simatic.internal.simatic.SimaticPortState.PortStates;
 import org.openhab.core.events.EventPublisher;
+import org.openhab.core.library.types.DecimalType;
+import org.openhab.core.library.types.HSBType;
+import org.openhab.core.library.types.OnOffType;
+import org.openhab.core.library.types.OpenClosedType;
+import org.openhab.core.library.types.PercentType;
+import org.openhab.core.library.types.StringType;
 import org.openhab.core.types.Command;
-import org.openhab.core.types.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,10 +45,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
     private int rcTest = 0;
     private int rcTestMax = 0;
 
-    /** device name ex.: plc,plc1, ... */
-    protected final String deviceName;
-    /** device ID ex.: 192.168.1.1, ... */
-    protected final String deviceID;
     /** defines maximum resend count */
     public final int MAX_RESEND_COUNT = 2;
 
@@ -49,7 +53,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     protected List<SimaticChannel> stateItems;
 
     /** flag that device is connected */
-    protected boolean connected = false;
+    private boolean connected = false;
     /** queue for commands */
     protected final Deque<SimaticWriteDataArea> commandQueue = new LinkedList<SimaticWriteDataArea>();
     /** State of socket */
@@ -79,75 +83,18 @@ public class SimaticGenericDevice implements SimaticIDevice {
     /**
      * Constructor
      *
-     * @param deviceName
-     * @param deviceID
      */
-    public SimaticGenericDevice(String deviceName, String deviceID) {
-        this.deviceName = deviceName;
-        this.deviceID = deviceID;
+    public SimaticGenericDevice() {
     }
 
     @Override
     public void setDataAreas(List<SimaticChannel> stateItems) {
         this.stateItems = stateItems;
         // prepare data if device is connected (depends on PDU size)
-        // FIXME
-        // if (isConnected()) {
-        prepareData();
-        // }
+        if (isConnected()) {
+            prepareData();
+        }
     }
-
-    /**
-     * Method to set binding configuration
-     *
-     * @param eventPublisher
-     * @param itemsConfig
-     * @param itemsInfoConfig
-     */
-    /*
-     * @Override
-     * public void setBindingData(EventPublisher eventPublisher, Map<String, SimaticBindingConfig> itemsConfig,
-     * Map<String, SimaticInfoBindingConfig> itemsInfoConfig) {
-     * this.eventPublisher = eventPublisher;
-     *
-     * // device item list
-     * List<Map.Entry<String, SimaticBindingConfig>> list = new LinkedList<Map.Entry<String, SimaticBindingConfig>>();
-     *
-     * for (Map.Entry<String, SimaticBindingConfig> item : itemsConfig.entrySet()) {
-     * if (item.getValue().device.equals(this.deviceName)) {
-     * list.add(item);
-     * }
-     * }
-     *
-     * // sort by address
-     * Collections.sort(list, new Comparator<Map.Entry<String, SimaticBindingConfig>>() {
-     *
-     * @Override
-     * public int compare(Map.Entry<String, SimaticBindingConfig> o1, Map.Entry<String, SimaticBindingConfig> o2) {
-     * return (o1.getValue().address).compareTo(o2.getValue().address);
-     * }
-     * });
-     *
-     * Map<String, SimaticBindingConfig> deviceItems = new LinkedHashMap<String, SimaticBindingConfig>();
-     * for (Map.Entry<String, SimaticBindingConfig> entry : list) {
-     * deviceItems.put(entry.getKey(), entry.getValue());
-     * }
-     *
-     * this.itemsConfig = deviceItems;
-     *
-     * this.portState.setBindingData(eventPublisher, itemsInfoConfig, this.deviceName);
-     * }
-     */
-    /**
-     * Method to clear inner binding configuration
-     */
-    /*
-     * @Override
-     * public void unsetBindingData() {
-     * this.eventPublisher = null;
-     * this.itemsConfig = null;
-     * }
-     */
 
     /**
      * Check if port is opened
@@ -179,7 +126,20 @@ public class SimaticGenericDevice implements SimaticIDevice {
     public void close() {
         logger.warn("{} - Closing... cannot close generic device", toString());
 
-        connected = false;
+        setConnected(false);
+    }
+
+    /**
+     * Set connection state
+     */
+    protected void setConnected(boolean state) {
+        if (connected == state) {
+            return;
+        }
+        connected = state;
+        if (onChange != null) {
+            onChange.onConnectionChanged(state);
+        }
     }
 
     /**
@@ -234,7 +194,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     public void sendData(SimaticWriteDataArea data) {
         if (data != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("{}: Adding command into queue", toString());
+                logger.debug("{} - Adding command into queue", toString());
             }
 
             // lock queue
@@ -354,11 +314,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
         }
     }
 
-    @Override
-    public String toString() {
-        return "DeviceID " + deviceID;
-    }
-
     /**
      * After item configuration is loaded this method prepare reading areas for this device
      */
@@ -445,130 +400,90 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * @param buffer
      * @param position
      */
-    // FIXME
-    /*
-     * public void postValue(SimaticBindingConfig item, byte[] buffer, int position) {
-     * // logger.debug("item={}", item.toString());
-     * // logger.debug("buffer={}", buffer.length);
-     * // logger.debug("position={}", position);
-     * // logger.debug("item len={}", item.getDataLength());
-     *
-     * ByteBuffer bb = ByteBuffer.wrap(buffer, position, item.getDataLength());
-     * State state = null;
-     * Class<?> itemclass = item.getOpenHabItem().getClass();
-     *
-     * // no byte swap for array
-     * // if (item.datatype == SimaticTypes.ARRAY) {
-     * bb.order(ByteOrder.BIG_ENDIAN);
-     * // } else {
-     * // bb.order(ByteOrder.LITTLE_ENDIAN);
-     * // }
-     *
-     * if (item.datatype == SimaticTypes.ARRAY) {
-     * if (itemclass.isAssignableFrom(StringItem.class)) {
-     * String str = new String(buffer, position, item.getDataLength());
-     * state = new StringType(str);
-     * } else {
-     * logger.warn("{} - Incoming data item {} - Array is only supported for string item.", toString(),
-     * item.getName());
-     * }
-     * } else {
-     *
-     * if (!itemclass.isAssignableFrom(SwitchItem.class) && !itemclass.isAssignableFrom(DimmerItem.class)
-     * && itemclass.isAssignableFrom(ColorItem.class)) {
-     * if (item.address.dataType != SimaticPLCDataTypes.DWORD) {
-     * logger.warn("{} - Incoming data item {} - Color item must have DWORD address", toString(),
-     * item.getName());
-     * } else {
-     * byte b0 = bb.get();
-     * byte b1 = bb.get();
-     * byte b2 = bb.get();
-     *
-     * if (item.getDataType() == SimaticTypes.HSB) {
-     * state = new HSBType(new DecimalType(b0), new PercentType(b1), new PercentType(b2));
-     * } else if (item.getDataType() == SimaticTypes.RGB) {
-     * state = new HSBType(new Color(b0, b1, b2));
-     * } else if (item.getDataType() == SimaticTypes.RGBW) {
-     * state = new HSBType(new Color(b0 & 0xFF, b1 & 0xFF, b2 & 0xFF));
-     * } else {
-     * logger.warn("{} - Incoming data item {} - Unsupported color type {}.", toString(),
-     * item.getName(), item.getDataType());
-     * }
-     * }
-     * } else {
-     * if ((item.datatype == SimaticTypes.FLOAT) && itemclass.isAssignableFrom(NumberItem.class)) {
-     * if (item.address.dataType == SimaticPLCDataTypes.DWORD) {
-     * state = new DecimalType(bb.getFloat());
-     * } else {
-     * logger.warn("{} - Incoming data item {} - Float is only supported with DWORD address.",
-     * toString(), item.getName());
-     * }
-     * } else {
-     * int intValue = 0;
-     *
-     * if (item.address.dataType == SimaticPLCDataTypes.BIT) {
-     * intValue = (bb.get() & (int) Math.pow(2, item.getAddress().getBitOffset())) != 0 ? 1 : 0;
-     * } else if (item.address.dataType == SimaticPLCDataTypes.BYTE) {
-     * intValue = bb.get();
-     * } else if (item.address.dataType == SimaticPLCDataTypes.WORD) {
-     * intValue = bb.getShort();
-     * } else if (item.address.dataType == SimaticPLCDataTypes.DWORD) {
-     * intValue = bb.getInt();
-     * }
-     *
-     * if (itemclass.isAssignableFrom(NumberItem.class)) {
-     * state = new DecimalType(intValue);
-     * } else if (itemclass.isAssignableFrom(SwitchItem.class)) {
-     * if (intValue == 1) {
-     * state = OnOffType.ON;
-     * } else {
-     * state = OnOffType.OFF;
-     * }
-     * } else if (itemclass.isAssignableFrom(DimmerItem.class)) {
-     * state = new PercentType(intValue);
-     * } else if (itemclass.isAssignableFrom(ContactItem.class)) {
-     * if (intValue == 1) {
-     * state = OpenClosedType.OPEN;
-     * } else {
-     * state = OpenClosedType.CLOSED;
-     * }
-     * } else if (itemclass.isAssignableFrom(RollershutterItem.class)) {
-     * state = new PercentType((intValue & 0xFF00) >> 8);
-     * } else {
-     * logger.warn("{} - Incoming data item {} - Class {} is not supported.", toString(),
-     * item.getName(), itemclass.toString());
-     * }
-     * }
-     * }
-     * }
-     *
-     * postState(item.getName(), state);
-     * }
-     */
+    public void postValue(SimaticChannel item, byte[] buffer, int position) {
+        // logger.debug("item={}", item.toString());
+        // logger.debug("buffer={}", buffer.length);
+        // logger.debug("position={}", position);
+        // logger.debug("item len={}", item.getStateAddress().getDataLength());
 
-    /**
-     * Method post item state into openHAB
-     *
-     * @param itemName
-     * @param state
-     */
-    public void postState(String itemName, State state) {
-        if (state == null) {
-            logger.warn("{} - Incoming data item {} - Unknown  state", toString(), itemName);
-        } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("{} - Incoming data - item:{}/state:{}", toString(), itemName, state);
+        ByteBuffer bb = ByteBuffer.wrap(buffer, position, item.getStateAddress().getDataLength());
+
+        // no byte swap for array
+        // if (item.datatype == SimaticTypes.ARRAY) {
+        bb.order(ByteOrder.BIG_ENDIAN);
+        // } else {
+        // bb.order(ByteOrder.LITTLE_ENDIAN);
+        // }
+
+        if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_STRING)) {
+            String str = new String(buffer, position, item.getStateAddress().getDataLength());
+            item.setState(new StringType(str));
+
+        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_NUMBER)) {
+            if (item.getStateAddress().isFloat()) {
+                item.setState(new DecimalType(bb.getFloat()));
+            } else {
+                final int intValue;
+                if (item.getStateAddress().dataType == SimaticPLCDataTypes.BIT) {
+                    intValue = (bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? 1 : 0;
+                } else if (item.getStateAddress().dataType == SimaticPLCDataTypes.BYTE) {
+                    intValue = bb.get();
+                } else if (item.getStateAddress().dataType == SimaticPLCDataTypes.WORD) {
+                    intValue = bb.getShort();
+                } else if (item.getStateAddress().dataType == SimaticPLCDataTypes.DWORD) {
+                    intValue = bb.getInt();
+                } else {
+                    intValue = 0;
+                }
+
+                item.setState(new DecimalType(intValue));
             }
-            // FIXME
-            /*
-             * if (eventPublisher != null) {
-             * eventPublisher.postUpdate(itemName, state);
-             * }
-             */
+        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_DIMMER)) {
+            item.setState(new PercentType(bb.get()));
+        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_CONTACT)) {
+            if (item.getStateAddress().dataType == SimaticPLCDataTypes.BIT) {
+                item.setState(
+                        (bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? OpenClosedType.OPEN
+                                : OpenClosedType.CLOSED);
+            } else {
+                item.setState((bb.get() != 0) ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
+            }
+        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_SWITCH)) {
+            if (item.getStateAddress().dataType == SimaticPLCDataTypes.BIT) {
+                item.setState((bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? OnOffType.ON
+                        : OnOffType.OFF);
+            } else {
+                item.setState(bb.get() != 0 ? OnOffType.ON : OnOffType.OFF);
+            }
+        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_ROLLERSHUTTER)) {
+            item.setState(new PercentType(bb.get()));
+        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_COLOR)) {
+            byte b0 = bb.get();
+            byte b1 = bb.get();
+            byte b2 = bb.get();
+            byte b3 = bb.get();
+
+            item.setState(HSBType.fromRGB(b0 & 0xFF, b1 & 0xFF, b2 & 0xFF));
+        } else {
+            item.setState(null);
+            logger.warn("{} - Incoming data channel {} - Unsupported channel type {}.", toString(), item.channelId,
+                    item.channelType.getId());
+            return;
+        }
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("{} - Incoming data - item:{}/state:{}", toString(), item.channelId, item.getState());
         }
     }
 
     public boolean shouldReconnect() {
         return tryReconnect.get();
+    }
+
+    private ConnectionChanged onChange = null;
+
+    @Override
+    public void onConnectionChanged(ConnectionChanged onChangeMethod) {
+        onChange = onChangeMethod;
     }
 }

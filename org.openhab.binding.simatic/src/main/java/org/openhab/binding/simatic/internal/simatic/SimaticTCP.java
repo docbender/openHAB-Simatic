@@ -47,13 +47,12 @@ public class SimaticTCP extends SimaticGenericDevice {
     /**
      * Constructor
      *
-     * @param deviceName
      * @param ip
      * @param rack
      * @param slot
      */
-    public SimaticTCP(String deviceName, String ip, int rack, int slot) {
-        super(deviceName, "isoTCP");
+    public SimaticTCP(String ip, int rack, int slot) {
+        super();
 
         this.plcAddress = ip;
         this.rack = rack;
@@ -65,14 +64,13 @@ public class SimaticTCP extends SimaticGenericDevice {
     /**
      * Constructor
      *
-     * @param deviceName
      * @param ip
      * @param rack
      * @param slot
      * @param communicationType
      */
-    public SimaticTCP(String deviceName, String ip, int rack, int slot, String communicationType) {
-        super(deviceName, "isoTCP");
+    public SimaticTCP(String ip, int rack, int slot, String communicationType) {
+        super();
 
         this.plcAddress = ip;
         this.rack = rack;
@@ -96,24 +94,6 @@ public class SimaticTCP extends SimaticGenericDevice {
         return this.plcAddress;
     }
 
-    /*
-     * @Override
-     * public void setBindingData(EventPublisher eventPublisher, Map<String, SimaticBindingConfig> itemsConfig,
-     * Map<String, SimaticInfoBindingConfig> itemsInfoConfig) {
-     * super.setBindingData(eventPublisher, itemsConfig, itemsInfoConfig);
-     * }
-     */
-
-    /**
-     * Check if port is opened
-     *
-     * @return
-     */
-    @Override
-    public boolean isConnected() {
-        return connected;
-    }
-
     /**
      * Open socket
      *
@@ -127,7 +107,7 @@ public class SimaticTCP extends SimaticGenericDevice {
 
         portState.setState(PortStates.CLOSED);
         // reset connected state
-        connected = false;
+        setConnected(false);
 
         // open socket
         try {
@@ -168,7 +148,7 @@ public class SimaticTCP extends SimaticGenericDevice {
                 tryReconnect.set(false);
                 // prepare data after PDU is negotiated
                 prepareData();
-                connected = true;
+                setConnected(true);
             } else {
                 logger.error("{} - cannot connect to PLC", this.toString());
 
@@ -196,7 +176,7 @@ public class SimaticTCP extends SimaticGenericDevice {
             logger.debug("{} - close() - disconnecting", this.toString());
         }
         portState.setState(PortStates.CLOSED);
-        connected = false;
+        setConnected(false);
 
         if (dc != null) {
             try {
@@ -344,7 +324,7 @@ public class SimaticTCP extends SimaticGenericDevice {
             return;
         }
 
-        logger.debug("Locking");
+        logger.debug("{} - Locking", toString());
 
         try {
             for (SimaticReadDataArea area : readAreasList.getData()) {
@@ -366,6 +346,7 @@ public class SimaticTCP extends SimaticGenericDevice {
                 }
 
                 if (result != 0) {
+
                     logger.error("{} - Read data area error (Area={}, Return code=0x{}, Error={})", toString(),
                             area.toString(), Integer.toHexString(result), Nodave.strerror(result));
 
@@ -378,6 +359,13 @@ public class SimaticTCP extends SimaticGenericDevice {
                         }
                         return;
                     } else {
+                        String message = String.format(
+                                "%s - Read data area error (Area=%s, Return code=0x%s, Error=%s})", toString(),
+                                area.toString(), Integer.toHexString(result), Nodave.strerror(result));
+                        // update Thing status for all channels in area
+                        for (SimaticChannel item : area.getItems()) {
+                            item.setError(message);
+                        }
                         continue;
                     }
                 }
@@ -388,24 +376,25 @@ public class SimaticTCP extends SimaticGenericDevice {
 
                 int start = area.getStartAddress();
 
+                // get data for all items in area
                 for (SimaticChannel item : area.getItems()) {
                     if (logger.isTraceEnabled()) {
                         logger.trace("{} - PostValue for item={}", toString(), item.toString());
                     }
-                    // FIXME
-                    // this.postValue(item, buffer, item.getAddress().getByteOffset() - start);
+                    // send value into openHAB
+                    this.postValue(item, buffer, item.getStateAddress().getByteOffset() - start);
                 }
             }
         } catch (Exception ex) {
             logger.error("{} - Read data error", toString(), ex);
         } finally {
-            logger.debug("Unlocking");
+            logger.debug("{} - Unlocking", toString());
             readLock.unlock();
         }
     }
 
     @Override
     public String toString() {
-        return deviceID + ":" + getIp();
+        return getIp();
     }
 }
