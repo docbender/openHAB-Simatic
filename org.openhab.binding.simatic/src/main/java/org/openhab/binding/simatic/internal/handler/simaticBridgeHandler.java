@@ -14,6 +14,7 @@ package org.openhab.binding.simatic.internal.handler;
 
 import java.util.ArrayList;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
@@ -47,7 +48,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
     private final Logger logger = LoggerFactory.getLogger(SimaticBridgeHandler.class);
 
-    private final int DEFAULT_SCANTIME = 1000;
+    private final int DEFAULT_SCANTIME = 5000;
 
     private @Nullable SimaticBridgeConfiguration config;
 
@@ -79,29 +80,36 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
         // S7-200 PLC
         if (config.isS7200) {
-            connection = new SimaticTCP("", ip, config.rack, config.slot, config.communicationType);
+            connection = new SimaticTCP200(ip, config.rack, config.slot);
         } else {
-            connection = new SimaticTCP200("", ip, config.rack, config.slot);
+            connection = new SimaticTCP(ip, config.rack, config.slot, config.communicationType);
         }
+
+        // react on connection changes
+        connection.onConnectionChanged((connected) -> {
+            if (connected) {
+                updateStatus(ThingStatus.ONLINE);
+            } else {
+                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
+            }
+        });
 
         // temporarily status
         updateStatus(ThingStatus.UNKNOWN);
-        // FIXME
-        return;
+
         // background initialization:
-        /*
-         * scheduler.execute(() -> {
-         * if (connection.open()) {
-         * updateStatus(ThingStatus.ONLINE);
-         * } else {
-         * updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
-         * }
-         *
-         * periodicJob = scheduler.scheduleAtFixedRate(() -> {
-         * execute();
-         * }, 0, DEFAULT_SCANTIME, TimeUnit.MILLISECONDS);
-         * });
-         */
+
+        scheduler.execute(() -> {
+            if (connection.open()) {
+                updateStatus(ThingStatus.ONLINE);
+            } else {
+                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
+            }
+
+            periodicJob = scheduler.scheduleAtFixedRate(() -> {
+                execute();
+            }, 0, DEFAULT_SCANTIME, TimeUnit.MILLISECONDS);
+        });
     }
 
     /**
@@ -140,7 +148,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
     }
 
     /**
-     *
+     * Update bridge configuration by all things channels
      */
     public void updateConfig() {
         int channelCount = 0;
