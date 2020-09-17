@@ -30,6 +30,7 @@ import org.openhab.core.thing.binding.BaseThingHandler;
 import org.openhab.core.thing.type.ChannelTypeUID;
 import org.openhab.core.types.Command;
 import org.openhab.core.types.RefreshType;
+import org.openhab.core.types.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,7 @@ public class SimaticGenericHandler extends BaseThingHandler {
 
     private @Nullable SimaticGenericConfiguration config;
     private @Nullable SimaticGenericDevice connection = null;
+    private long errorSetTime = 0;
 
     public final Map<ChannelUID, SimaticChannel> channels = new LinkedHashMap<ChannelUID, SimaticChannel>();
 
@@ -75,7 +77,7 @@ public class SimaticGenericHandler extends BaseThingHandler {
             chConfig.channelId = channelUID;
             chConfig.channelType = channelTypeUID;
 
-            if (!chConfig.init()) {
+            if (!chConfig.init(this)) {
                 errors++;
                 logger.warn("{} - channel configuration error {}, Error={}", thing.getLabel(), chConfig,
                         chConfig.getError());
@@ -99,8 +101,12 @@ public class SimaticGenericHandler extends BaseThingHandler {
 
     @Override
     public void dispose() {
-        logger.debug("{} - device dispose", getThing().getLabel());
+        for (SimaticChannel ch : channels.values()) {
+            ch.clear();
+        }
+        channels.clear();
         connection = null;
+        logger.debug("{} - device dispose", getThing().getLabel());
     }
 
     /**
@@ -155,5 +161,43 @@ public class SimaticGenericHandler extends BaseThingHandler {
         SimaticChannel channel = channels.get(channelUID);
 
         connection.sendData(channel, command);
+    }
+
+    @Override
+    public void updateState(ChannelUID channelUID, State state) {
+        super.updateState(channelUID, state);
+    }
+
+    @Override
+    public void updateStatus(ThingStatus status) {
+        super.updateStatus(status);
+    }
+
+    @Override
+    public void updateStatus(ThingStatus status, ThingStatusDetail statusDetail, @Nullable String description) {
+        super.updateStatus(status, statusDetail, description);
+    }
+
+    public void setError(String message) {
+        errorSetTime = System.currentTimeMillis();
+        var st = getThing().getStatusInfo();
+        if (st.getStatus() == ThingStatus.OFFLINE && st.getStatusDetail() == ThingStatusDetail.COMMUNICATION_ERROR
+                && st.getDescription() != null && st.getDescription().equals(message)) {
+            return;
+        }
+
+        updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, message);
+    }
+
+    public void clearError() {
+        // no error
+        if (getThing().getStatus() == ThingStatus.ONLINE) {
+            return;
+        }
+
+        // minimum error time left
+        if (System.currentTimeMillis() - errorSetTime > 10000) {
+            updateStatus(ThingStatus.ONLINE);
+        }
     }
 }

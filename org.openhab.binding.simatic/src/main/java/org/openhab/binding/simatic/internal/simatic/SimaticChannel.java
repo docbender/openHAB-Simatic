@@ -17,23 +17,30 @@ import java.util.regex.Pattern;
 
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.simatic.internal.SimaticBindingConstants;
+import org.openhab.binding.simatic.internal.handler.SimaticGenericHandler;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.type.ChannelTypeUID;
 import org.openhab.core.types.State;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author VitaTucek - Initial contribution
  *
  */
 public class SimaticChannel {
+    private static final Logger logger = LoggerFactory.getLogger(SimaticChannel.class);
+
     public ChannelUID channelId;
     public ChannelTypeUID channelType;
     public String stateAddress;
     public String commandAddress;
-    public State value;
+    private State value;
     private String error;
     private SimaticPLCAddress stateAddressPlc;
     private SimaticPLCAddress commandAddressPlc;
+    private SimaticGenericHandler thing;
+    private long valueUpdateTime = 0;
 
     final private static Pattern numberAddressPattern = Pattern
             .compile("^(([IQAEM][BWD])(\\d+)(F?))$|^(DB(\\d+)\\.DB([BWD])(\\d+)(F?))$");
@@ -54,7 +61,14 @@ public class SimaticChannel {
         return String.format("ChID=%s,StateAddress=%s,CmdAddress=%s", channelId.getId(), stateAddress, commandAddress);
     }
 
-    public boolean init() {
+    public boolean init(SimaticGenericHandler handler) {
+        if (handler == null) {
+            error = "ThingHandler is null";
+            return false;
+        }
+
+        thing = handler;
+
         if (channelId == null) {
             error = "ChannelID is null";
             return false;
@@ -79,6 +93,11 @@ public class SimaticChannel {
         return true;
     }
 
+    public void clear() {
+        thing = null;
+        value = null;
+    }
+
     public @Nullable SimaticPLCAddress checkAddress(String address) {
         final Matcher matcher;
         switch (channelType.getId()) {
@@ -92,10 +111,11 @@ public class SimaticChannel {
                 }
                 if (matcher.group(1) == null) {
                     return new SimaticPLCAddress(Integer.parseInt(matcher.group(6)), matcher.group(7),
-                            Integer.parseInt(matcher.group(8)), matcher.group(9) != null);
+                            Integer.parseInt(matcher.group(8)),
+                            matcher.group(9) != null && !matcher.group(9).isEmpty());
                 } else {
                     return new SimaticPLCAddress(matcher.group(2), Integer.parseInt(matcher.group(3)),
-                            matcher.group(4) != null);
+                            matcher.group(4) != null && !matcher.group(4).isEmpty());
                 }
             case SimaticBindingConstants.CHANNEL_STRING:
                 matcher = stringAddressPattern.matcher(address);
@@ -209,5 +229,38 @@ public class SimaticChannel {
 
     public @Nullable SimaticPLCAddress getCommandAddress() {
         return commandAddressPlc;
+    }
+
+    public void setState(State state) {
+        value = state;
+        if (thing == null) {
+            return;
+        }
+        thing.updateState(channelId, state);
+        valueUpdateTime = System.currentTimeMillis();
+        clearError();
+    }
+
+    public @Nullable State getState() {
+        return value;
+    }
+
+    public @Nullable SimaticGenericHandler getThing() {
+        return thing;
+    }
+
+    public void setError(String message) {
+        if (thing == null) {
+            return;
+        }
+        thing.setError(message);
+    }
+
+    private void clearError() {
+        if (thing == null) {
+            return;
+        }
+
+        thing.clearError();
     }
 }
