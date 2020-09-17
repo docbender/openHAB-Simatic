@@ -11,7 +11,6 @@ package org.openhab.binding.simatic.internal.simatic;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,11 +27,11 @@ public class SimaticPLCAddress implements Comparable {
     final Integer addressByte;
     final Integer addressBit;
     final Integer dBNum;
+    final boolean floatNumber;
     SimaticPLCAreaTypes area = SimaticPLCAreaTypes.UNKNOWN_AREA;
     SimaticPLCDataTypes dataType = SimaticPLCDataTypes.UNKNOWN_TYPE;
     final Integer dataLength;
-    @Nullable
-    SimaticTypes datatype;
+    // @Nullable SimaticTypes datatype;
 
     /*
      * public SimaticPLCAddress(String address) {
@@ -69,6 +68,7 @@ public class SimaticPLCAddress implements Comparable {
         addressByte = bytePosition;
         addressBit = 0;
         dBNum = 0;
+        floatNumber = isFloat;
 
         dataLength = prepareAddress(nonDbArea);
     }
@@ -84,6 +84,7 @@ public class SimaticPLCAddress implements Comparable {
         addressByte = bytePosition;
         addressBit = bitPosition;
         dBNum = 0;
+        floatNumber = false;
 
         dataLength = prepareAddress(nonDbArea);
     }
@@ -98,6 +99,7 @@ public class SimaticPLCAddress implements Comparable {
         addressByte = bytePosition;
         addressBit = 0;
         dBNum = 0;
+        floatNumber = false;
 
         dataLength = length;
         prepareAddress(nonDbArea);
@@ -126,6 +128,7 @@ public class SimaticPLCAddress implements Comparable {
         addressByte = bytePosition;
         addressBit = 0;
         dBNum = dbNumber;
+        floatNumber = isFloat;
 
         dataLength = prepareAddress(dbArea);
     }
@@ -141,6 +144,7 @@ public class SimaticPLCAddress implements Comparable {
         addressByte = bytePosition;
         addressBit = bitPosition;
         dBNum = dbNumber;
+        floatNumber = false;
 
         dataLength = prepareAddress("B");
     }
@@ -156,6 +160,7 @@ public class SimaticPLCAddress implements Comparable {
         addressByte = bytePosition;
         addressBit = 0;
         dBNum = dbNumber;
+        floatNumber = false;
 
         dataLength = length;
         prepareAddress("B");
@@ -309,6 +314,10 @@ public class SimaticPLCAddress implements Comparable {
 
     public SimaticPLCDataTypes getSimaticDataType() {
         return dataType;
+    }
+
+    public boolean isFloat() {
+        return floatNumber;
     }
 
     @Override
