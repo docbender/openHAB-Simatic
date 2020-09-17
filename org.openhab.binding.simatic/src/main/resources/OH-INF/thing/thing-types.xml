@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="simatic"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="https://openhab.org/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0 https://openhab.org/schemas/thing-description-1.0.0.xsd">
+	<!-- Simatic bridge -->
+	<bridge-type id="bridge">
+		<label>Simatic Bridge</label>
+		<description>Represent single PLC or more exactly its connection, which uses individual things.</description>
+		<config-description>
+			<parameter name="ipAddress" type="text" required="true">
+				<label>PLC IP address</label>
+				<description>Network IP address of PLC</description>
+				<context>network-address</context>
+			</parameter>
+			<parameter name="rack" type="integer" required="true">
+				<label>Rack number</label>
+				<description>The rack number in which CPU is presented</description>
+				<default>0</default>
+			</parameter>
+			<parameter name="slot" type="integer" required="true">
+				<label>Rack number</label>
+				<description>The slot number where CPU is inserted</description>
+				<default>2</default>
+			</parameter>
+			<parameter name="communicationType" type="text">
+				<label>Communication type</label>
+				<description>Which type of communication should be established. Possibilities are PG, OP, S7 (default).</description>
+				<default>S7</default>
+				<advanced>true</advanced>
+			</parameter>
+			<parameter name="isS7200" type="boolean">
+				<label>PLC is S7-200 series</label>
+				<description>Communication partner is CP243 of Simatic S7-200</description>
+				<default>false</default>
+				<advanced>true</advanced>
+			</parameter>
+		</config-description>
+	</bridge-type>
+
+	<!-- Generic Thing Type -->
+	<thing-type id="generic_device"
+		extensible="chNumber,chColor,chString,chContact,chSwitch,chDimmer,chRollershutter">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="bridge"/>
+		</supported-bridge-type-refs>
+		<label>Simatic Binding Thing</label>
+		<description>Generic thing for Simatic Binding. This thing requires bridge to be defined.</description>
+	</thing-type>
+
+	<!-- Channels -->
+	<channel-type id="chNumber">
+		<item-type>Number</item-type>
+		<label>Number Value</label>
+		<description>Supported Simatic data types are Byte, Word, Dword, Float</description>
+		<config-description>
+			<parameter name="stateAddress" type="text">
+				<label>State address</label>
+				<description>Simatic address to get item state. If empty no data will be received.</description>
+			</parameter>
+			<parameter name="commandAddress" type="text">
+				<label>Command address</label>
+				<description>Simatic address to command item. If empty no data will be sent.</description>
+			</parameter>
+		</config-description>
+	</channel-type>
+	<channel-type id="chColor">
+		<item-type>Color</item-type>
+		<label>Color Value</label>
+		<description>In Simatic represented as Dword. Each byte is single color part.</description>
+		<config-description>
+			<parameter name="stateAddress" type="text">
+				<label>State address</label>
+				<description>Simatic address to get item state. If empty no data will be received.</description>
+			</parameter>
+			<parameter name="commandAddress" type="text">
+				<label>Command address</label>
+				<description>Simatic address to command item. If empty no data will be sent.</description>
+			</parameter>
+		</config-description>
+	</channel-type>
+	<channel-type id="chString">
+		<item-type>String</item-type>
+		<label>Text Value</label>
+		<description>Represented as array of Bytes.</description>
+		<config-description>
+			<parameter name="stateAddress" type="text">
+				<label>State address</label>
+				<description>Simatic address to get item state. If empty no data will be received.</description>
+			</parameter>
+			<parameter name="commandAddress" type="text">
+				<label>Command address</label>
+				<description>Simatic address to command item. If empty no data will be sent.</description>
+			</parameter>
+		</config-description>
+	</channel-type>
+	<channel-type id="chContact">
+		<item-type>Contact</item-type>
+		<label>Open/Close Contact</label>
+		<description>Simatic data type is Byte or Bit. 0 - Close, 1 - Open</description>
+		<config-description>
+			<parameter name="stateAddress" type="text">
+				<label>State address</label>
+				<description>Simatic address to get item state. If empty no data will be received.</description>
+			</parameter>
+			<parameter name="commandAddress" type="text">
+				<label>Command address</label>
+				<description>Simatic address to command item. If empty no data will be sent.</description>
+			</parameter>
+		</config-description>
+	</channel-type>
+	<channel-type id="chSwitch">
+		<item-type>Switch</item-type>
+		<label>On/Off Switch</label>
+		<description>Simatic data type is Byte or Bit. 0 - Off, 1 - On</description>
+		<config-description>
+			<parameter name="stateAddress" type="text">
+				<label>State address</label>
+				<description>Simatic address to get item state. If empty no data will be received.</description>
+			</parameter>
+			<parameter name="commandAddress" type="text">
+				<label>Command address</label>
+				<description>Simatic address to command item. If empty no data will be sent.</description>
+			</parameter>
+		</config-description>
+	</channel-type>
+	<channel-type id="chDimmer">
+		<item-type>Dimmer</item-type>
+		<label>Percentage Value</label>
+		<description>Simatic data type is Byte. Range is 0-100</description>
+		<config-description>
+			<parameter name="stateAddress" type="text">
+				<label>State address</label>
+				<description>Simatic address to get item state. If empty no data will be received.</description>
+			</parameter>
+			<parameter name="commandAddress" type="text">
+				<label>Command address</label>
+				<description>Simatic address to command item. If empty no data will be sent.</description>
+			</parameter>
+		</config-description>
+	</channel-type>
+	<channel-type id="chRollershutter">
+		<item-type>Rollershutter</item-type>
+		<label>Rollershutter</label>
+		<description>Simatic data type is Byte. Status byte for position (0-100), command byte for StopMove/UpDown -
+			1-Move,2-Stop,4-Up,8-Down</description>
+		<config-description>
+			<parameter name="stateAddress" type="text">
+				<label>State address</label>
+				<description>Simatic address to get item state. If empty no data will be received.</description>
+			</parameter>
+			<parameter name="commandAddress" type="text">
+				<label>Command address</label>
+				<description>Simatic address to command item. If empty no data will be sent.</description>
+			</parameter>
+		</config-description>
+	</channel-type>
+</thing:thing-descriptions>
