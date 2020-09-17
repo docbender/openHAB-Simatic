@@ -19,6 +19,10 @@ import org.openhab.core.types.Command;
  * @since 1.9.0
  */
 public interface SimaticIDevice {
+    public interface ConnectionChanged {
+        public void onConnectionChanged(boolean connected);
+    }
+
     /**
      * Open device connection
      *
@@ -59,4 +63,9 @@ public interface SimaticIDevice {
      */
     @Override
     public String toString();
+
+    /**
+     * Set method provided on connection changes
+     */
+    public void onConnectionChanged(ConnectionChanged onChangeMethod);
 }
