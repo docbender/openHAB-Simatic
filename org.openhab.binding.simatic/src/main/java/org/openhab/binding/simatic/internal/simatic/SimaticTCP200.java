@@ -31,14 +31,12 @@ public class SimaticTCP200 extends SimaticTCP {
     /**
      * Constructor
      *
-     * @param deviceName
      * @param ip
      * @param rack
      * @param slot
      */
-    public SimaticTCP200(String deviceName, String ip, int rack, int slot) {
-        super(deviceName, ip, rack, slot);
-        // TODO Auto-generated constructor stub
+    public SimaticTCP200(String ip, int rack, int slot) {
+        super(ip, rack, slot);
     }
 
     /**
@@ -54,7 +52,7 @@ public class SimaticTCP200 extends SimaticTCP {
 
         portState.setState(PortStates.CLOSED);
         // reset connected state
-        connected = false;
+        setConnected(false);
 
         // open socket
         try {
@@ -92,7 +90,7 @@ public class SimaticTCP200 extends SimaticTCP {
                 }
                 portState.setState(PortStates.LISTENING);
                 tryReconnect.set(false);
-                connected = true;
+                setConnected(true);
             } else {
                 logger.error("{} - cannot connect to PLC", this.toString());
 
