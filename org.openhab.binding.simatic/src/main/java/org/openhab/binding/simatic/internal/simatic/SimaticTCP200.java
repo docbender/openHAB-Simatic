@@ -31,12 +31,12 @@ public class SimaticTCP200 extends SimaticTCP {
     /**
      * Constructor
      *
-     * @param ip
+     * @param address
      * @param rack
      * @param slot
      */
-    public SimaticTCP200(String ip, int rack, int slot) {
-        super(ip, rack, slot);
+    public SimaticTCP200(String address, int rack, int slot) {
+        super(address, rack, slot);
     }
 
     /**
@@ -53,43 +53,26 @@ public class SimaticTCP200 extends SimaticTCP {
         portState.setState(PortStates.CLOSED);
         // reset connected state
         setConnected(false);
+        tryReconnect.set(false);
 
         // open socket
         try {
             sock = new Socket(this.plcAddress, 102);
-        } catch (IOException e) {
-            logger.error("{} - create socket error: {}", this.toString(), e.getMessage());
-            return false;
-        }
 
-        if (sock == null) {
-            logger.error("{} - socket was not created (null returned)", this.toString());
-            return false;
-        }
-
-        try {
             oStream = sock.getOutputStream();
-        } catch (IOException e) {
-            logger.error("{} - getOutputStream error: {}", this.toString(), e.getMessage());
-            return false;
-        }
-        try {
+
             iStream = sock.getInputStream();
-        } catch (IOException e) {
-            logger.error("{} - getInputStream error: {}", this.toString(), e.getMessage());
-            return false;
-        }
-        di = new PLCinterface(oStream, iStream, "IF1", 0, Nodave.PROTOCOL_ISOTCP);
 
-        dc = new TCP243Connection(di, rack, slot);
+            di = new PLCinterface(oStream, iStream, "IF1", 0, Nodave.PROTOCOL_ISOTCP);
 
-        try {
+            dc = new TCP243Connection(di, rack, slot);
+
             if (dc.connectPLC() == 0) {
                 if (logger.isInfoEnabled()) {
                     logger.info("{} - connected", this.toString());
                 }
                 portState.setState(PortStates.LISTENING);
-                tryReconnect.set(false);
+
                 setConnected(true);
             } else {
                 logger.error("{} - cannot connect to PLC", this.toString());
@@ -100,6 +83,8 @@ public class SimaticTCP200 extends SimaticTCP {
             logger.error("{} - cannot connect to PLC due: {}", this.toString(), ex.getMessage());
 
             return false;
+        } finally {
+            tryReconnect.set(false);
         }
 
         return true;
