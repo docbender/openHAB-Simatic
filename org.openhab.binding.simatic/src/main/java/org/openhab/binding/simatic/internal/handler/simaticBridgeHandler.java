@@ -13,16 +13,17 @@
 package org.openhab.binding.simatic.internal.handler;
 
 import java.util.ArrayList;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.openhab.binding.simatic.internal.SimaticBindingConstants;
 import org.openhab.binding.simatic.internal.config.SimaticBridgeConfiguration;
 import org.openhab.binding.simatic.internal.simatic.SimaticChannel;
 import org.openhab.binding.simatic.internal.simatic.SimaticGenericDevice;
 import org.openhab.binding.simatic.internal.simatic.SimaticTCP;
 import org.openhab.binding.simatic.internal.simatic.SimaticTCP200;
+import org.openhab.core.library.types.DecimalType;
+import org.openhab.core.library.types.StringType;
 import org.openhab.core.thing.Bridge;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
@@ -30,6 +31,8 @@ import org.openhab.core.thing.ThingStatus;
 import org.openhab.core.thing.ThingStatusDetail;
 import org.openhab.core.thing.binding.BaseBridgeHandler;
 import org.openhab.core.types.Command;
+import org.openhab.core.types.RefreshType;
+import org.openhab.core.types.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,55 +42,107 @@ import org.slf4j.LoggerFactory;
  *
  * @author VitaTucek - Initial contribution
  */
-/**
- * @author tucek
- *
- */
 @NonNullByDefault
 public class SimaticBridgeHandler extends BaseBridgeHandler {
 
     private final Logger logger = LoggerFactory.getLogger(SimaticBridgeHandler.class);
 
-    private final int DEFAULT_SCANTIME = 5000;
-
     private @Nullable SimaticBridgeConfiguration config;
 
     public @Nullable SimaticGenericDevice connection = null;
 
-    private @Nullable ScheduledFuture periodicJob;
+    // bridge channels
+    private @Nullable ChannelUID chVersion, chPduSize, chAreasCount, chAreas, chTagCount, chRequests, chBytes;
 
-    // devices
-    // private Map<String, SimaticGenericDevice> devices = new HashMap<String, SimaticGenericDevice>();
-
+    /**
+     * Constructor
+     *
+     * @param bridge
+     */
     public SimaticBridgeHandler(Bridge bridge) {
         super(bridge);
+
+        // retrieve bridge channels
+        getThing().getChannels().forEach((channel) -> {
+            if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_VERSION)) {
+                chVersion = channel.getUID();
+            } else if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_PDU_SIZE)) {
+                chPduSize = channel.getUID();
+            } else if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_AREAS_COUNT)) {
+                chAreasCount = channel.getUID();
+            } else if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_AREAS)) {
+                chAreas = channel.getUID();
+            } else if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_TAG_COUNT)) {
+                chTagCount = channel.getUID();
+            } else if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_REQUESTS)) {
+                chRequests = channel.getUID();
+            } else if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_BYTES)) {
+                chBytes = channel.getUID();
+            }
+        });
     }
 
     @SuppressWarnings("null")
     @Override
     public void initialize() {
+        updateState(chVersion, new StringType(SimaticBindingConstants.VERSION));
+
         config = getConfigAs(SimaticBridgeConfiguration.class);
 
-        var ip = config.ipAddress;
+        logger.debug("{} - Bridge configuration: Host/IP={},Rack={},Slot={},Comm={},Is200={}", getThing().getLabel(),
+                config.address, config.rack, config.slot, config.communicationType, config.isS7200);
 
-        if (ip == null) {
-            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "No IP address");
+        // configuration validation
+        boolean valid = true;
+
+        if (config.address == null || config.address.isBlank()) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "No Host/IP address");
+            valid = false;
             return;
         }
 
-        logger.debug("{} - Bridge configuration: IP={},Rack={},Slot={},Comm={},Is200={}", getThing().getLabel(), ip,
-                config.rack, config.slot, config.communicationType, config.isS7200);
+        if (config.rack < 0 || config.rack > 2) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
+                    "Invalid Rack number. Valid is 0-2.");
+            valid = false;
+            return;
+        }
+
+        if (config.slot < 0 || config.slot > 15) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
+                    "Invalid Slot number. Valid is 0-15.");
+            valid = false;
+            return;
+        }
+
+        if (config.communicationType == null || !(config.communicationType.equals("S7")
+                || config.communicationType.equals("PG") || config.communicationType.equals("OP"))) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "Invalid communication type.");
+            valid = false;
+            return;
+        }
+
+        if (!valid) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR);
+            logger.error("{} - Bridge configuration is invalid. Host/IP={},Rack={},Slot={},Comm={},Is200={}",
+                    getThing().getLabel(), config.address, config.rack, config.slot, config.communicationType,
+                    config.isS7200);
+        }
 
         // S7-200 PLC
         if (config.isS7200) {
-            connection = new SimaticTCP200(ip, config.rack, config.slot);
+            connection = new SimaticTCP200(config.address, config.rack, config.slot);
         } else {
-            connection = new SimaticTCP(ip, config.rack, config.slot, config.communicationType);
+            connection = new SimaticTCP(config.address, config.rack, config.slot, config.communicationType);
         }
 
         // react on connection changes
         connection.onConnectionChanged((connected) -> {
             if (connected) {
+                updateState(chPduSize, new DecimalType(connection.getPduSize()));
+                updateState(chAreasCount, new DecimalType(connection.getReadAreas().size()));
+                updateState(chAreas, new StringType(connection.getReadAreas().toString()));
+
                 updateStatus(ThingStatus.ONLINE);
             } else {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
@@ -97,54 +152,45 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         // temporarily status
         updateStatus(ThingStatus.UNKNOWN);
 
-        // background initialization:
-
+        // background initialization
         scheduler.execute(() -> {
             if (connection.open()) {
                 updateStatus(ThingStatus.ONLINE);
             } else {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
             }
-
-            periodicJob = scheduler.scheduleAtFixedRate(() -> {
-                execute();
-            }, 0, DEFAULT_SCANTIME, TimeUnit.MILLISECONDS);
         });
     }
 
-    /**
-     * Called at specified period
-     */
-    @SuppressWarnings("null")
-    protected void execute() {
-        if (connection == null) {
+    @Override
+    protected void updateState(@Nullable ChannelUID channel, State state) {
+        if (channel == null) {
+            logger.error("{} - updateState(...) channelID is null for state={}", getThing().getLabel(), state);
             return;
         }
-        // TODO: move into SimaticTCP / SimaticGenericDevice
-        if (!connection.isConnected() || connection.shouldReconnect()) {
-            connection.reconnectWithDelaying();
-        }
-        if (connection.isConnected()) {
-            // check device for new data
-            connection.checkNewData();
-        }
+        logger.debug("{} - update channelID={}, state={}", getThing().getLabel(), channel, state);
+
+        super.updateState(channel, state);
     }
 
     @Override
     public void dispose() {
         if (connection != null) {
-            connection.close();
+            connection.dispose();
             connection = null;
-            if (periodicJob != null) {
-                periodicJob.cancel(true);
-            }
         }
         logger.debug("{} - bridge has been stopped", getThing().getLabel());
     }
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
-        // no command for bridge
+        logger.debug("{} - Command {} for channel {}", thing.getLabel(), command, channelUID);
+
+        // get cached values
+        if (command instanceof RefreshType) {
+
+            // updateState(channelUID, value);
+        }
     }
 
     /**
@@ -184,6 +230,13 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         if (connection != null) {
             connection.setDataAreas(stateItems);
         }
+
+        if (connection.isConnected()) {
+            updateState(chAreasCount, new DecimalType(connection.getReadAreas().size()));
+            updateState(chAreas, new StringType(connection.getReadAreas().toString()));
+        }
+
+        updateState(chTagCount, new DecimalType(channelCount));
 
         logger.debug("{} - updating {} channels({} read)", getThing().getLabel(), channelCount, stateChannelCount);
     }
