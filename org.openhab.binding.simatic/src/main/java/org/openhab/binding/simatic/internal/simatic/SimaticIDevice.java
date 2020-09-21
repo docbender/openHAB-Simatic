@@ -23,6 +23,16 @@ public interface SimaticIDevice {
         public void onConnectionChanged(boolean connected);
     }
 
+    public interface MetricsUpdated {
+        public void onMetricsUpdated(long requests, long bytes);
+    }
+
+    /**
+     * Release resources
+     *
+     */
+    void dispose();
+
     /**
      * Open device connection
      *
@@ -47,12 +57,6 @@ public interface SimaticIDevice {
     public void sendData(SimaticChannel item, Command command);
 
     /**
-     * Check new data for all connected devices
-     *
-     */
-    public void checkNewData();
-
-    /**
      * Set read write areas
      *
      */
@@ -68,4 +72,17 @@ public interface SimaticIDevice {
      * Set method provided on connection changes
      */
     public void onConnectionChanged(ConnectionChanged onChangeMethod);
+
+    /**
+     * Set method provided on update metrics
+     */
+    public void onMetricsUpdated(MetricsUpdated onUpdateMethod);
+
+    /**
+     * Check new data for all connected devices
+     *
+     * @throws SimaticReadException
+     *
+     */
+    void readDataArea(SimaticReadDataArea area) throws SimaticReadException;
 }

@@ -47,14 +47,14 @@ public class SimaticTCP extends SimaticGenericDevice {
     /**
      * Constructor
      *
-     * @param ip
+     * @param address
      * @param rack
      * @param slot
      */
-    public SimaticTCP(String ip, int rack, int slot) {
+    public SimaticTCP(String address, int rack, int slot) {
         super();
 
-        this.plcAddress = ip;
+        this.plcAddress = address;
         this.rack = rack;
         this.slot = slot;
 
@@ -64,15 +64,15 @@ public class SimaticTCP extends SimaticGenericDevice {
     /**
      * Constructor
      *
-     * @param ip
+     * @param address
      * @param rack
      * @param slot
      * @param communicationType
      */
-    public SimaticTCP(String ip, int rack, int slot, String communicationType) {
+    public SimaticTCP(String address, int rack, int slot, String communicationType) {
         super();
 
-        this.plcAddress = ip;
+        this.plcAddress = address;
         this.rack = rack;
         this.slot = slot;
 
@@ -86,11 +86,11 @@ public class SimaticTCP extends SimaticGenericDevice {
     }
 
     /**
-     * Return bind IP address
+     * Return bind host address
      *
      * @return
      */
-    protected String getIp() {
+    protected String getAddress() {
         return this.plcAddress;
     }
 
@@ -101,8 +101,9 @@ public class SimaticTCP extends SimaticGenericDevice {
      */
     @Override
     public Boolean open() {
+        tryReconnect.set(false);
         if (logger.isDebugEnabled()) {
-            logger.debug("{} - open() - connecting", this.toString());
+            logger.debug("{} - open() - connecting...", this.toString());
         }
 
         portState.setState(PortStates.CLOSED);
@@ -112,40 +113,20 @@ public class SimaticTCP extends SimaticGenericDevice {
         // open socket
         try {
             sock = new Socket(this.plcAddress, 102);
-        } catch (IOException e) {
-            logger.error("{} - create socket error: {}", this.toString(), e.getMessage());
-            return false;
-        }
 
-        if (sock == null) {
-            logger.error("{} - socket was not created (null returned)", this.toString());
-            return false;
-        }
-
-        try {
             oStream = sock.getOutputStream();
-        } catch (IOException e) {
-            logger.error("{} - getOutputStream error: {}", this.toString(), e.getMessage());
-            return false;
-        }
-        try {
             iStream = sock.getInputStream();
-        } catch (IOException e) {
-            logger.error("{} - getInputStream error: {}", this.toString(), e.getMessage());
-            return false;
-        }
-        di = new PLCinterface(oStream, iStream, "IF1", 0, Nodave.PROTOCOL_ISOTCP);
 
-        dc = new TCPConnection(di, rack, slot, communicationType);
+            di = new PLCinterface(oStream, iStream, "IF1", 0, Nodave.PROTOCOL_ISOTCP);
 
-        try {
+            dc = new TCPConnection(di, rack, slot, communicationType);
+
             if (dc.connectPLC() == 0) {
                 if (logger.isInfoEnabled()) {
                     logger.info("{} - connected. PDU size = {}B", this.toString(), dc.maxPDUlength);
                 }
                 pduSize = dc.maxPDUlength;
                 portState.setState(PortStates.LISTENING);
-                tryReconnect.set(false);
                 // prepare data after PDU is negotiated
                 prepareData();
                 setConnected(true);
@@ -155,28 +136,25 @@ public class SimaticTCP extends SimaticGenericDevice {
                 return false;
             }
         } catch (IOException ex) {
-            logger.error("{} - cannot connect to PLC due: {}", this.toString(), ex.getMessage());
-
+            logger.error("{} - cannot connect to PLC. {}", this.toString(), ex.getMessage());
             return false;
+        } catch (Exception ex) {
+            logger.error("{} - cannot connect to PLC. {}", this.toString(), ex.getMessage());
+            return false;
+        } finally {
+            tryReconnect.set(true);
         }
-
         return true;
     }
 
     /**
      * Close socket
      *
-     * @throws
-     *
-     * @see    org.openhab.binding.simplebinary.internal.SimaticIDevice#close()
+     * @see org.openhab.binding.simplebinary.internal.SimaticIDevice#close()
      */
     @Override
     public void close() {
-        if (logger.isDebugEnabled()) {
-            logger.debug("{} - close() - disconnecting", this.toString());
-        }
-        portState.setState(PortStates.CLOSED);
-        setConnected(false);
+        super.close();
 
         if (dc != null) {
             try {
@@ -304,97 +282,58 @@ public class SimaticTCP extends SimaticGenericDevice {
     }
 
     /**
-     * Check new data for all connected devices
+     * Read data from Simatic area
+     *
+     * @throws SimaticReadException
      *
      */
     @Override
-    public void checkNewData() {
-        if (!isConnected()) {
-            return;
-        }
+    public void readDataArea(SimaticReadDataArea area) throws SimaticReadException {
+        byte[] buffer = new byte[area.getAddressSpaceLength()];
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("{} - checkNewData() is called", toString());
-        }
-
-        if (!readLock.tryLock()) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("{} - Reading already in progress", toString());
-            }
-            return;
-        }
-
-        logger.debug("{} - Locking", toString());
-
+        int result;
         try {
-            for (SimaticReadDataArea area : readAreasList.getData()) {
-                byte[] buffer = new byte[area.getAddressSpaceLength()];
-
-                int result;
-                try {
-                    result = dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
-                            area.getAddressSpaceLength(), buffer);
-                } catch (IOException ex) {
-                    logger.error("{} - Read data area error (Area={}, Error={})", toString(), area.toString(),
-                            ex.getMessage());
-
-                    if (isConnected()) {
-                        portState.setState(PortStates.RESPONSE_ERROR);
-                        tryReconnect.set(true);
-                    }
-                    return;
-                }
-
-                if (result != 0) {
-
-                    logger.error("{} - Read data area error (Area={}, Return code=0x{}, Error={})", toString(),
-                            area.toString(), Integer.toHexString(result), Nodave.strerror(result));
-
-                    if (result == Nodave.RESULT_UNEXPECTED_FUNC
-                            || result == Nodave.RESULT_READ_DATA_BUFFER_INSUFFICIENT_SPACE
-                            || result == Nodave.RESULT_NO_DATA_RETURNED) {
-                        if (isConnected()) {
-                            portState.setState(PortStates.RESPONSE_ERROR);
-                            tryReconnect.set(true);
-                        }
-                        return;
-                    } else {
-                        String message = String.format(
-                                "%s - Read data area error (Area=%s, Return code=0x%s, Error=%s})", toString(),
-                                area.toString(), Integer.toHexString(result), Nodave.strerror(result));
-                        // update Thing status for all channels in area
-                        for (SimaticChannel item : area.getItems()) {
-                            item.setError(message);
-                        }
-                        continue;
-                    }
-                }
-
-                if (logger.isDebugEnabled()) {
-                    logger.debug("{} - Reading finished. Area={}", toString(), area.toString());
-                }
-
-                int start = area.getStartAddress();
-
-                // get data for all items in area
-                for (SimaticChannel item : area.getItems()) {
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("{} - PostValue for item={}", toString(), item.toString());
-                    }
-                    // send value into openHAB
-                    this.postValue(item, buffer, item.getStateAddress().getByteOffset() - start);
-                }
+            result = dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
+                    area.getAddressSpaceLength(), buffer);
+        } catch (IOException ex) {
+            if (isConnected()) {
+                portState.setState(PortStates.RESPONSE_ERROR);
+                tryReconnect.set(true);
             }
-        } catch (Exception ex) {
-            logger.error("{} - Read data error", toString(), ex);
-        } finally {
-            logger.debug("{} - Unlocking", toString());
-            readLock.unlock();
+            throw new SimaticReadException(area, ex);
+        }
+
+        if (result != 0) {
+            String message = String.format("Read data area error (Area=%s, Return code=0x%s, Error=%s})",
+                    area.toString(), Integer.toHexString(result), Nodave.strerror(result));
+            if (result == Nodave.RESULT_UNEXPECTED_FUNC || result == Nodave.RESULT_READ_DATA_BUFFER_INSUFFICIENT_SPACE
+                    || result == Nodave.RESULT_NO_DATA_RETURNED) {
+                if (isConnected()) {
+                    portState.setState(PortStates.RESPONSE_ERROR);
+                    tryReconnect.set(true);
+                }
+                throw new SimaticReadException(area, message, true);
+            } else {
+
+                // update Thing status for all channels in area
+                for (SimaticChannel item : area.getItems()) {
+                    item.setError(message);
+                }
+                throw new SimaticReadException(area, message, false);
+            }
+        }
+
+        int start = area.getStartAddress();
+
+        // get data for all items in area
+        for (SimaticChannel item : area.getItems()) {
+            // send value into openHAB
+            this.postValue(item, buffer, item.getStateAddress().getByteOffset() - start);
         }
     }
 
     @Override
     public String toString() {
-        return getIp();
+        return getAddress();
     }
 }

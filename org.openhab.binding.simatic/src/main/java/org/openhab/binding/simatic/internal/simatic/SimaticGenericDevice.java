@@ -15,13 +15,17 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.simatic.internal.SimaticBindingConstants;
 import org.openhab.binding.simatic.internal.simatic.SimaticPortState.PortStates;
-import org.openhab.core.events.EventPublisher;
+import org.openhab.core.common.ThreadPoolManager;
 import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.library.types.HSBType;
 import org.openhab.core.library.types.OnOffType;
@@ -40,6 +44,11 @@ import org.slf4j.LoggerFactory;
  */
 public class SimaticGenericDevice implements SimaticIDevice {
     private static final Logger logger = LoggerFactory.getLogger(SimaticGenericDevice.class);
+    private static final String THING_HANDLER_THREADPOOL_NAME = "thingHandler";
+    protected final ScheduledExecutorService scheduler = ThreadPoolManager
+            .getScheduledPool(THING_HANDLER_THREADPOOL_NAME);
+
+    private final int DEFAULT_SCANTIME = 5000;
 
     private static final int RECONNECT_DELAY_MAX = 15;
     private int rcTest = 0;
@@ -48,7 +57,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
     /** defines maximum resend count */
     public final int MAX_RESEND_COUNT = 2;
 
-    protected EventPublisher eventPublisher;
     /** item config */
     protected List<SimaticChannel> stateItems;
 
@@ -68,6 +76,10 @@ public class SimaticGenericDevice implements SimaticIDevice {
     /** PDU size **/
     protected int pduSize = 0;
 
+    long readed = 0;
+    long readedBytes = 0;
+    long metricsStart = 0;
+
     public enum ProcessDataResult {
         OK,
         DATA_NOT_COMPLETED,
@@ -80,11 +92,37 @@ public class SimaticGenericDevice implements SimaticIDevice {
         UNKNOWN_MESSAGE_REWIND
     }
 
+    private @Nullable ScheduledFuture periodicJob;
+
     /**
      * Constructor
      *
      */
     public SimaticGenericDevice() {
+        periodicJob = scheduler.scheduleAtFixedRate(() -> {
+            execute();
+        }, 500, DEFAULT_SCANTIME, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void dispose() {
+        close();
+        if (periodicJob != null) {
+            periodicJob.cancel(true);
+        }
+    }
+
+    /**
+     * Called at specified period
+     */
+    protected void execute() {
+        if (!isConnected() && shouldReconnect()) {
+            reconnectWithDelaying();
+        }
+        if (isConnected()) {
+            // check device for new data
+            checkNewData();
+        }
     }
 
     @Override
@@ -124,8 +162,10 @@ public class SimaticGenericDevice implements SimaticIDevice {
      */
     @Override
     public void close() {
-        logger.warn("{} - Closing... cannot close generic device", toString());
-
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} - close()", this.toString());
+        }
+        portState.setState(PortStates.CLOSED);
         setConnected(false);
     }
 
@@ -289,29 +329,70 @@ public class SimaticGenericDevice implements SimaticIDevice {
     }
 
     /**
-     * @see org.openhab.binding.SimaticIDevice.internal.SimaticIDevice#checkNewData()
+     * Check new data for all connected devices
      */
-    @Override
-    public void checkNewData() {
-
-        if (isConnected()) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("{} - checkNewData() is called", toString());
-            }
-
-            if (!readLock.tryLock()) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("{} - Reading already in progress", toString());
-                }
-                return;
-            }
-
-            for (SimaticReadDataArea item : readAreasList.getData()) {
-                // Read data depend on connection type
-            }
-
-            readLock.unlock();
+    protected void checkNewData() {
+        if (!isConnected()) {
+            return;
         }
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("{} - checkNewData() is called", toString());
+        }
+
+        if (!readLock.tryLock()) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("{} - Reading already in progress", toString());
+            }
+            return;
+        }
+
+        logger.trace("{} - Locking", toString());
+
+        try {
+            for (SimaticReadDataArea area : readAreasList.getData()) {
+                try {
+                    // read data
+                    readDataArea(area);
+                } catch (SimaticReadException e) {
+                    logger.error("{} - ", toString(), e);
+                    if (e.fatal) {
+                        return;
+                    } else {
+                        continue;
+                    }
+                }
+
+                readed++;
+                readedBytes += area.getAddressSpaceLength();
+
+                if (logger.isDebugEnabled()) {
+                    logger.debug("{} - Reading finished. Area={}", toString(), area.toString());
+                }
+            }
+        } catch (Exception ex) {
+            logger.error("{} - Read data error", toString(), ex);
+        } finally {
+            logger.trace("{} - Unlocking", toString());
+            readLock.unlock();
+
+            long diff;
+            if ((diff = (metricsStart - System.currentTimeMillis())) > 5000 || metricsStart == 0) {
+                long requests = readed * 1000 / diff;
+                long bytes = readedBytes * 1000 / diff;
+
+                metricsStart = System.currentTimeMillis();
+                readed = readedBytes = 0;
+
+                if (onUpdate != null) {
+                    onUpdate.onMetricsUpdated(requests, bytes);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void readDataArea(SimaticReadDataArea area) throws SimaticReadException {
     }
 
     /**
@@ -480,10 +561,25 @@ public class SimaticGenericDevice implements SimaticIDevice {
         return tryReconnect.get();
     }
 
+    public int getPduSize() {
+        return pduSize;
+    }
+
+    public SimaticReadQueue getReadAreas() {
+        return readAreasList;
+    }
+
     private ConnectionChanged onChange = null;
 
     @Override
     public void onConnectionChanged(ConnectionChanged onChangeMethod) {
         onChange = onChangeMethod;
+    }
+
+    private MetricsUpdated onUpdate = null;
+
+    @Override
+    public void onMetricsUpdated(MetricsUpdated onUpdateMethod) {
+        onUpdate = onUpdateMethod;
     }
 }
