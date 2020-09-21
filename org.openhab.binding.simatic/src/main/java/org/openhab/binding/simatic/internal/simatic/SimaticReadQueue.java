@@ -19,16 +19,31 @@ import java.util.LinkedList;
  */
 public class SimaticReadQueue {
     LinkedList<SimaticReadDataArea> data = new LinkedList<SimaticReadDataArea>();
+    StringBuilder sb = new StringBuilder();
 
     public void put(SimaticReadDataArea item) {
         data.offer(item);
+        if (sb.length() > 0) {
+            sb.append(";");
+        }
+        sb.append(item.toString());
     }
 
     public void clear() {
         data.clear();
+        sb.setLength(0);
     }
 
     public LinkedList<SimaticReadDataArea> getData() {
         return data;
+    }
+
+    @Override
+    public String toString() {
+        return sb.toString();
+    }
+
+    public int size() {
+        return data.size();
     }
 }
