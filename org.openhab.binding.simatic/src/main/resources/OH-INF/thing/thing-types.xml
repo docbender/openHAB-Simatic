@@ -7,10 +7,19 @@
 	<bridge-type id="bridge">
 		<label>Simatic Bridge</label>
 		<description>Represent single PLC or more exactly its connection, which uses individual things.</description>
+		<channels>
+		    <channel id="channelVersionID" typeId="chVersionTypeID" />
+            <channel id="channelPduID" typeId="chPduTypeID" />
+            <channel id="channelAreasCountID" typeId="chAreasCountTypeID" />
+            <channel id="channelAreasID" typeId="chAreasTypeID" />
+            <channel id="channelTagCountID" typeId="chTagCountTypeID" />            
+            <channel id="channelRequestsID" typeId="chRequestsTypeID" />
+            <channel id="channelBytesID" typeId="chBytesTypeID" />            
+        </channels>        
 		<config-description>
-			<parameter name="ipAddress" type="text" required="true">
-				<label>PLC IP address</label>
-				<description>Network IP address of PLC</description>
+			<parameter name="address" type="text" required="true">
+				<label>PLC IP/Host address</label>
+				<description>Network IP/Host address of PLC</description>
 				<context>network-address</context>
 			</parameter>
 			<parameter name="rack" type="integer" required="true">
@@ -49,6 +58,51 @@
 	</thing-type>
 
 	<!-- Channels -->
+    <!-- Bridge Channels -->
+    <channel-type id="chVersionTypeID">
+        <item-type>String</item-type>
+        <label>Version</label>
+        <description>Binding version</description>
+        <state readOnly="true" />        
+    </channel-type>
+    <channel-type id="chPduTypeID">
+        <item-type>Number</item-type>
+        <label>PDU size</label>
+        <description>Negotiated PDU size</description>   
+        <state pattern="%d B" readOnly="true" />     
+    </channel-type>
+    <channel-type id="chAreasCountTypeID">
+        <item-type>Number</item-type>
+        <label>Areas count</label>
+        <description>Communicated PLC data areas count</description>
+        <state readOnly="true" />        
+    </channel-type> 
+    <channel-type id="chAreasTypeID">
+        <item-type>String</item-type>
+        <label>Areas</label>
+        <description>Communicated PLC data areas</description>
+        <state readOnly="true" />        
+    </channel-type> 
+    <channel-type id="chTagCountTypeID">
+        <item-type>Number</item-type>
+        <label>Channels count</label>
+        <description>Channels count</description>
+        <state readOnly="true" />        
+    </channel-type> 
+    <channel-type id="chRequestsTypeID">
+        <item-type>Number</item-type>
+        <label>Request/s</label>
+        <description>Requests per second to device</description>
+        <state pattern="%d 1/s" readOnly="true" />        
+    </channel-type> 
+    <channel-type id="chBytesTypeID">
+        <item-type>Number</item-type>
+        <label>Bytes/s</label>
+        <description>Bytes per second to device</description>
+        <state pattern="%d B/s" readOnly="true" />        
+    </channel-type> 
+        
+    <!-- Thing Channels -->
 	<channel-type id="chNumber">
 		<item-type>Number</item-type>
 		<label>Number Value</label>

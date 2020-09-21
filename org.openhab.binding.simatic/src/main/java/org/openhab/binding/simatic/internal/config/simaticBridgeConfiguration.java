@@ -20,9 +20,9 @@ package org.openhab.binding.simatic.internal.config;
 public class SimaticBridgeConfiguration {
 
     /**
-     * Device IP address
+     * Device IP/Host address
      */
-    public String ipAddress;
+    public String address;
 
     /**
      * CPU Rack number
