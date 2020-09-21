@@ -71,7 +71,7 @@ public class SimaticHandlerFactory extends BaseThingHandlerFactory {
     @Override
     protected void activate(ComponentContext componentContext) {
         super.activate(componentContext);
-        logger.debug("Simatic binding (v.{}) has been started.", VERSION);
+        logger.info("Simatic binding (v.{}) has been started.", VERSION);
     }
 
     @Override
