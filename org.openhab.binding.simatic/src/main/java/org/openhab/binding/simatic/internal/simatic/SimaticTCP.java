@@ -195,16 +195,14 @@ public class SimaticTCP extends SimaticGenericDevice {
 
         if (data.getAddress().getSimaticDataType() != SimaticPLCDataTypes.BIT) {
             if (logger.isDebugEnabled()) {
-                logger.debug("{} - writeBytes(area={},db={},adr={},len={}, data={})", this.toString(),
-                        data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
-                        data.getAddressSpaceLength(), data.getData().length);
-
                 String datastring = "";
                 for (byte b : data.getData()) {
-                    datastring += b + ",";
+                    datastring += "0x" + Integer.toHexString(b) + ",";
                 }
 
-                logger.debug(datastring);
+                logger.debug("{} - writeBytes(area={},db={},adr={},len={},datalen={},data={})", this.toString(),
+                        data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
+                        data.getAddressSpaceLength(), data.getData().length, datastring);
             }
 
             try {
@@ -229,17 +227,15 @@ public class SimaticTCP extends SimaticGenericDevice {
             }
         } else {
             if (logger.isDebugEnabled()) {
-                logger.debug("{} - writeBits(area={},db={},adr={},len={}, data={})", this.toString(),
-                        data.getAreaIntFormat(), data.getDBNumber(),
-                        8 * data.getAddress().getByteOffset() + data.getAddress().getBitOffset(),
-                        data.getAddressSpaceLength(), data.getData().length);
-
                 String datastring = "";
                 for (byte b : data.getData()) {
-                    datastring += b + ",";
+                    datastring += "0x" + Integer.toHexString(b) + ",";
                 }
 
-                logger.debug(datastring);
+                logger.debug("{} - writeBits(area={},db={},adr={},len={},datalen={},data={})", this.toString(),
+                        data.getAreaIntFormat(), data.getDBNumber(),
+                        8 * data.getAddress().getByteOffset() + data.getAddress().getBitOffset(),
+                        data.getAddressSpaceLength(), data.getData().length, datastring);
             }
             int result;
             try {

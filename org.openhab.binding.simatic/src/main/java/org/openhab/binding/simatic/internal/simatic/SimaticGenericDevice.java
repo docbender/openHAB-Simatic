@@ -225,7 +225,12 @@ public class SimaticGenericDevice implements SimaticIDevice {
      */
     @Override
     public void sendData(SimaticChannel item, Command command) {
-        sendData(SimaticWriteDataArea.create(command, item, pduSize));
+        try {
+            var area = SimaticWriteDataArea.create(command, item, pduSize);
+            sendData(area);
+        } catch (Exception ex) {
+            logger.error("{} - ", toString(), ex);
+        }
     }
 
     /**
@@ -233,15 +238,20 @@ public class SimaticGenericDevice implements SimaticIDevice {
      *
      * @param data
      */
-    public void sendData(SimaticWriteDataArea data) {
-        if (data != null) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("{} - Adding command into queue", toString());
-            }
+    private void sendData(SimaticWriteDataArea data) {
+        if (data == null) {
+            logger.warn("{} - Nothing to send. Empty data area", toString());
+            return;
+        }
 
-            // lock queue
-            lock.lock();
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} - Adding command into queue", toString());
+        }
 
+        // lock queue
+        lock.lock();
+
+        try {
             if (commandQueue.size() == 0) {
                 // add data
                 commandQueue.addFirst(data);
@@ -254,13 +264,14 @@ public class SimaticGenericDevice implements SimaticIDevice {
                     }
                 }
             }
+        } catch (Exception ex) {
+            logger.error("{} - Cannot insert data into command queue.", toString(), ex);
+        } finally {
             // unlock queue
             lock.unlock();
-
-            processCommandQueue();
-        } else {
-            logger.warn("{}: Nothing to send. Empty data", toString());
         }
+
+        processCommandQueue();
     }
 
     /**
@@ -301,7 +312,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
                 dataToSend = commandQueue.poll();
             }
         } catch (Exception e) {
-
+            logger.error("{} - Cannost retrieve data from command queue.", toString(), e);
         } finally {
             lock.unlock();
         }

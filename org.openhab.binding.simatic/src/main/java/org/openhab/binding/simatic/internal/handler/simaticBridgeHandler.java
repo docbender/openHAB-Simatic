@@ -176,7 +176,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
             logger.error("{} - updateState(...) channelID is null for state={}", getThing().getLabel(), state);
             return;
         }
-        logger.debug("{} - update channelID={}, state={}", getThing().getLabel(), channel, state);
+        // logger.debug("{} - update channelID={}, state={}", getThing().getLabel(), channel, state);
 
         super.updateState(channel, state);
     }

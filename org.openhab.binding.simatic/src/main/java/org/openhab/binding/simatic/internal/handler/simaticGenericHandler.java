@@ -147,20 +147,21 @@ public class SimaticGenericHandler extends BaseThingHandler {
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
-        logger.debug("{} - Command {} for channel {}", thing.getLabel(), command, channelUID);
+        logger.debug("{} - Command {}({}) for channel {}", thing.getLabel(), command, command.getClass(), channelUID);
 
         // get cached values
         if (command instanceof RefreshType) {
-
+            logger.error("{} - command: RefreshType not implemented");
             // updateState(channelUID, value);
+            return;
         }
 
         if (connection == null) {
             return;
         }
 
-        if (!channels.containsKey(channels)) {
-            logger.error("{} - channel does not exists. ChannelUID={}", thing.getLabel(), channelUID);
+        if (!channels.containsKey(channelUID)) {
+            logger.error("{} - command: Channel does not exists. ChannelUID={}", thing.getLabel(), channelUID);
             return;
         }
         SimaticChannel channel = channels.get(channelUID);
