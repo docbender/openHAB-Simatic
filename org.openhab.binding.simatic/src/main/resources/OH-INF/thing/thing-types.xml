@@ -32,10 +32,27 @@
 				<description>The slot number where CPU is inserted</description>
 				<default>2</default>
 			</parameter>
-			<parameter name="communicationType" type="text">
+			<parameter name="pollRate" type="integer" min="100" required="true">
+                <label>Poll rate</label>
+                <description>Determine period of data read from device</description>
+                <default>1000</default>
+                <advanced>true</advanced>
+            </parameter>
+            <parameter name="charset" type="text">
+                <label>Code page</label>
+                <description>Define code page for communicated strings (e.g. ISO-8859-1, cp1250). If blank or wrong code page is defined, system code page is used.</description>
+                <default></default>
+                <advanced>true</advanced>
+            </parameter>
+			<parameter name="communicationType" type="text" pattern="^(PG)|(OP)|(S7)$" required="true">
 				<label>Communication type</label>
 				<description>Which type of communication should be established. Possibilities are PG, OP, S7 (default).</description>
 				<default>S7</default>
+				<options>
+                  <option value="PG">PG</option>
+                  <option value="OP">OP</option>
+                  <option value="S7">S7</option>
+                </options>
 				<advanced>true</advanced>
 			</parameter>
 			<parameter name="isS7200" type="boolean">
