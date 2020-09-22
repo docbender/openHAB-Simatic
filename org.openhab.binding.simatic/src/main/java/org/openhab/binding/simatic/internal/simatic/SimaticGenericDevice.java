@@ -10,6 +10,7 @@ package org.openhab.binding.simatic.internal.simatic;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
@@ -22,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.simatic.internal.SimaticBindingConstants;
 import org.openhab.binding.simatic.internal.simatic.SimaticPortState.PortStates;
@@ -58,7 +60,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     public final int MAX_RESEND_COUNT = 2;
 
     /** item config */
-    protected List<SimaticChannel> stateItems;
+    protected List<@NonNull SimaticChannel> stateItems;
 
     /** flag that device is connected */
     private boolean connected = false;
@@ -116,7 +118,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * Called at specified period
      */
     protected void execute() {
-        if (!isConnected() && shouldReconnect()) {
+        if (shouldReconnect()) {
             reconnectWithDelaying();
         }
         if (isConnected()) {
@@ -126,7 +128,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     }
 
     @Override
-    public void setDataAreas(List<SimaticChannel> stateItems) {
+    public void setDataAreas(@NonNull ArrayList<@NonNull SimaticChannel> stateItems) {
         this.stateItems = stateItems;
         // prepare data if device is connected (depends on PDU size)
         if (isConnected()) {
@@ -186,7 +188,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * Reconnect device
      */
     public boolean reconnect() {
-        logger.info("{}: Trying to reconnect", toString());
+        logger.info("{} - Trying to reconnect", toString());
 
         close();
         return open();
@@ -196,8 +198,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * Reconnect device
      */
     public void reconnectWithDelaying() {
-
-        logger.debug("reconnectWithDelaying(): {}/{}/{}", rcTest, rcTestMax, RECONNECT_DELAY_MAX);
+        logger.debug("{} - reconnectWithDelaying(): {}/{}/{}", toString(), rcTest, rcTestMax, RECONNECT_DELAY_MAX);
 
         if (rcTest < rcTestMax) {
             rcTest++;
@@ -399,7 +400,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * After item configuration is loaded this method prepare reading areas for this device
      */
     public void prepareData() {
-
         if (stateItems == null) {
             return;
         }

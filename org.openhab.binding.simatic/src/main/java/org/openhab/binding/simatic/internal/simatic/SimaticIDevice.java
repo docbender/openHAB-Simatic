@@ -8,8 +8,9 @@
  */
 package org.openhab.binding.simatic.internal.simatic;
 
-import java.util.List;
+import java.util.ArrayList;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.openhab.core.types.Command;
 
 /**
@@ -60,7 +61,7 @@ public interface SimaticIDevice {
      * Set read write areas
      *
      */
-    public void setDataAreas(List<SimaticChannel> stateItems);
+    public void setDataAreas(@NonNull ArrayList<@NonNull SimaticChannel> stateItems);
 
     /**
      * Function return device string representation

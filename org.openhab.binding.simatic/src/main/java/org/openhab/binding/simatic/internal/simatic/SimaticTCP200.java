@@ -8,7 +8,6 @@
  */
 package org.openhab.binding.simatic.internal.simatic;
 
-import java.io.IOException;
 import java.net.Socket;
 
 import org.openhab.binding.simatic.internal.libnodave.Nodave;
@@ -58,13 +57,9 @@ public class SimaticTCP200 extends SimaticTCP {
         // open socket
         try {
             sock = new Socket(this.plcAddress, 102);
-
             oStream = sock.getOutputStream();
-
             iStream = sock.getInputStream();
-
             di = new PLCinterface(oStream, iStream, "IF1", 0, Nodave.PROTOCOL_ISOTCP);
-
             dc = new TCP243Connection(di, rack, slot);
 
             if (dc.connectPLC() == 0) {
@@ -76,15 +71,15 @@ public class SimaticTCP200 extends SimaticTCP {
                 setConnected(true);
             } else {
                 logger.error("{} - cannot connect to PLC", this.toString());
-
+                tryReconnect.set(true);
                 return false;
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             logger.error("{} - cannot connect to PLC due: {}", this.toString(), ex.getMessage());
-
+            tryReconnect.set(true);
             return false;
         } finally {
-            tryReconnect.set(false);
+
         }
 
         return true;

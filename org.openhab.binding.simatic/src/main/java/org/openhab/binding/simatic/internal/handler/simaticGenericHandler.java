@@ -17,7 +17,6 @@ import java.util.Map;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
-import org.openhab.binding.simatic.internal.config.SimaticGenericConfiguration;
 import org.openhab.binding.simatic.internal.simatic.SimaticChannel;
 import org.openhab.binding.simatic.internal.simatic.SimaticGenericDevice;
 import org.openhab.core.thing.Channel;
@@ -27,6 +26,7 @@ import org.openhab.core.thing.ThingStatus;
 import org.openhab.core.thing.ThingStatusDetail;
 import org.openhab.core.thing.ThingStatusInfo;
 import org.openhab.core.thing.binding.BaseThingHandler;
+import org.openhab.core.thing.binding.BridgeHandler;
 import org.openhab.core.thing.type.ChannelTypeUID;
 import org.openhab.core.types.Command;
 import org.openhab.core.types.RefreshType;
@@ -45,7 +45,6 @@ public class SimaticGenericHandler extends BaseThingHandler {
 
     private final Logger logger = LoggerFactory.getLogger(SimaticGenericHandler.class);
 
-    private @Nullable SimaticGenericConfiguration config;
     private @Nullable SimaticGenericDevice connection = null;
     private long errorSetTime = 0;
 
@@ -57,8 +56,6 @@ public class SimaticGenericHandler extends BaseThingHandler {
 
     @Override
     public void initialize() {
-        config = getConfigAs(SimaticGenericConfiguration.class);
-
         logger.debug("{} - initialize. Channels count={}", thing.getLabel(), thing.getChannels().size());
 
         int errors = 0;
@@ -89,14 +86,22 @@ public class SimaticGenericHandler extends BaseThingHandler {
             channels.put(channelUID, chConfig);
         }
 
-        // get connection and update status
-        bridgeStatusChanged(getBridge().getStatusInfo());
+        var bridge = getBridge();
+
+        if (bridge == null) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_UNINITIALIZED);
+        } else {
+            // get connection and update status
+            bridgeStatusChanged(bridge.getStatusInfo());
+        }
 
         if (errors > 0) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "Channel configuration error");
         }
-        //
-        ((SimaticBridgeHandler) getBridge().getHandler()).updateConfig();
+        BridgeHandler handler;
+        if (bridge != null && (handler = bridge.getHandler()) != null) {
+            ((SimaticBridgeHandler) handler).updateConfig();
+        }
     }
 
     @Override

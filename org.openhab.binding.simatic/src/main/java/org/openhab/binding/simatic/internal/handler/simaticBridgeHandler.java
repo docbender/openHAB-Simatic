@@ -14,6 +14,7 @@ package org.openhab.binding.simatic.internal.handler;
 
 import java.util.ArrayList;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.simatic.internal.SimaticBindingConstants;
@@ -59,6 +60,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
      *
      * @param bridge
      */
+    @SuppressWarnings("null")
     public SimaticBridgeHandler(Bridge bridge) {
         super(bridge);
 
@@ -149,6 +151,11 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
             }
         });
 
+        connection.onMetricsUpdated((requests, bytes) -> {
+            updateState(chRequests, new DecimalType(requests));
+            updateState(chBytes, new DecimalType(bytes));
+        });
+
         // temporarily status
         updateStatus(ThingStatus.UNKNOWN);
 
@@ -188,7 +195,6 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
         // get cached values
         if (command instanceof RefreshType) {
-
             // updateState(channelUID, value);
         }
     }
@@ -213,7 +219,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
             }
         }
 
-        ArrayList<SimaticChannel> stateItems = new ArrayList<SimaticChannel>(stateChannelCount);
+        var stateItems = new ArrayList<@NonNull SimaticChannel>(stateChannelCount);
 
         for (Thing th : getThing().getThings()) {
             var h = ((SimaticGenericHandler) th.getHandler());
@@ -228,12 +234,13 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         }
 
         if (connection != null) {
-            connection.setDataAreas(stateItems);
-        }
+            var c = connection;
+            c.setDataAreas(stateItems);
 
-        if (connection.isConnected()) {
-            updateState(chAreasCount, new DecimalType(connection.getReadAreas().size()));
-            updateState(chAreas, new StringType(connection.getReadAreas().toString()));
+            if (c.isConnected()) {
+                updateState(chAreasCount, new DecimalType(c.getReadAreas().size()));
+                updateState(chAreas, new StringType(c.getReadAreas().toString()));
+            }
         }
 
         updateState(chTagCount, new DecimalType(channelCount));

@@ -113,12 +113,9 @@ public class SimaticTCP extends SimaticGenericDevice {
         // open socket
         try {
             sock = new Socket(this.plcAddress, 102);
-
             oStream = sock.getOutputStream();
             iStream = sock.getInputStream();
-
             di = new PLCinterface(oStream, iStream, "IF1", 0, Nodave.PROTOCOL_ISOTCP);
-
             dc = new TCPConnection(di, rack, slot, communicationType);
 
             if (dc.connectPLC() == 0) {
@@ -132,17 +129,15 @@ public class SimaticTCP extends SimaticGenericDevice {
                 setConnected(true);
             } else {
                 logger.error("{} - cannot connect to PLC", this.toString());
-
+                tryReconnect.set(true);
                 return false;
             }
-        } catch (IOException ex) {
-            logger.error("{} - cannot connect to PLC. {}", this.toString(), ex.getMessage());
-            return false;
         } catch (Exception ex) {
             logger.error("{} - cannot connect to PLC. {}", this.toString(), ex.getMessage());
+            tryReconnect.set(true);
             return false;
         } finally {
-            tryReconnect.set(true);
+
         }
         return true;
     }
@@ -193,13 +188,6 @@ public class SimaticTCP extends SimaticGenericDevice {
      */
     @Override
     protected boolean sendDataOut(SimaticWriteDataArea data) {
-        // TODO: If the connection is reset because of a network error, we can try to re-send the write instead of
-        // dropping it. -- AchilleGR
-        // TODO: Don't allow writing to addresses corresponding to items marked as read only -- AchilleGR
-        if (logger.isDebugEnabled()) {
-            logger.debug("{} - Sending data to device", this.toString());
-        }
-
         if (!isConnected()) {
             logger.debug("{} - Not connected. Sent discarted.", this.toString());
             return false;
