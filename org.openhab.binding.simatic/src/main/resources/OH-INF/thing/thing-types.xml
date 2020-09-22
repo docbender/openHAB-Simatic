@@ -8,13 +8,13 @@
 		<label>Simatic Bridge</label>
 		<description>Represent single PLC or more exactly its connection, which uses individual things.</description>
 		<channels>
-		    <channel id="channelVersionID" typeId="chVersionTypeID" />
-            <channel id="channelPduID" typeId="chPduTypeID" />
-            <channel id="channelAreasCountID" typeId="chAreasCountTypeID" />
-            <channel id="channelAreasID" typeId="chAreasTypeID" />
-            <channel id="channelTagCountID" typeId="chTagCountTypeID" />            
-            <channel id="channelRequestsID" typeId="chRequestsTypeID" />
-            <channel id="channelBytesID" typeId="chBytesTypeID" />            
+		    <channel id="ChannelVersion" typeId="chVersionTypeID" />
+            <channel id="ChannelPdu" typeId="chPduTypeID" />
+            <channel id="ChannelAreasCount" typeId="chAreasCountTypeID" />
+            <channel id="ChannelAreas" typeId="chAreasTypeID" />
+            <channel id="ChannelTagCount" typeId="chTagCountTypeID" />            
+            <channel id="ChannelRequests" typeId="chRequestsTypeID" />
+            <channel id="ChannelBytes" typeId="chBytesTypeID" />            
         </channels>        
 		<config-description>
 			<parameter name="address" type="text" required="true">
