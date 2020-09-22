@@ -10,6 +10,7 @@ package org.openhab.binding.simatic.internal.simatic;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -497,7 +498,16 @@ public class SimaticGenericDevice implements SimaticIDevice {
         // }
 
         if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_STRING)) {
-            String str = new String(buffer, position, item.getStateAddress().getDataLength());
+            // TODO: get charset from UI
+            Charset charset = Charset.forName("CP1250");
+            // check for '\0' char and resolve string length
+            int i;
+            for (i = position; i < item.getStateAddress().getDataLength(); i++) {
+                if (buffer[i] == 0) {
+                    break;
+                }
+            }
+            String str = new String(buffer, position, i, charset);
             item.setState(new StringType(str));
 
         } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_NUMBER)) {
