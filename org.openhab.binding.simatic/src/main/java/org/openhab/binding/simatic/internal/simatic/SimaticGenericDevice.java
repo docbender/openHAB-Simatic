@@ -378,9 +378,9 @@ public class SimaticGenericDevice implements SimaticIDevice {
             readLock.unlock();
 
             long diff;
-            if ((diff = (metricsStart - System.currentTimeMillis())) > 5000 || metricsStart == 0) {
-                long requests = readed * 1000 / diff;
-                long bytes = readedBytes * 1000 / diff;
+            if ((diff = (System.currentTimeMillis() - metricsStart)) >= 5000 || metricsStart == 0) {
+                long requests = (long) Math.ceil(readed * 1000.0 / diff);
+                long bytes = (long) Math.ceil(readedBytes * 1000.0 / diff);
 
                 metricsStart = System.currentTimeMillis();
                 readed = readedBytes = 0;
@@ -581,5 +581,27 @@ public class SimaticGenericDevice implements SimaticIDevice {
     @Override
     public void onMetricsUpdated(MetricsUpdated onUpdateMethod) {
         onUpdate = onUpdateMethod;
+    }
+
+    public static String arrayToString(byte[] data, int length) {
+        StringBuilder s = new StringBuilder();
+
+        for (int i = 0; i < length; i++) {
+            byte b = data[i];
+            if (s.length() == 0) {
+                s.append("[");
+            } else {
+                s.append(" ");
+            }
+
+            // if(SimpleBinaryBinding.JavaVersion >= 1.8)
+            // s.append("0x" + Integer.toHexString(Byte.toUnsignedInt(b)).toUpperCase());
+            // else
+            s.append("0x" + Integer.toHexString(b & 0xFF).toUpperCase());
+        }
+
+        s.append("]");
+
+        return s.toString();
     }
 }

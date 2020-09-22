@@ -143,7 +143,8 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
             if (connected) {
                 updateState(chPduSize, new DecimalType(connection.getPduSize()));
                 updateState(chAreasCount, new DecimalType(connection.getReadAreas().size()));
-                updateState(chAreas, new StringType(connection.getReadAreas().toString()));
+                updateState(chAreas, new StringType(
+                        (connection.getReadAreas().size() == 0) ? "none" : connection.getReadAreas().toString()));
 
                 updateStatus(ThingStatus.ONLINE);
             } else {
@@ -239,7 +240,8 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
             if (c.isConnected()) {
                 updateState(chAreasCount, new DecimalType(c.getReadAreas().size()));
-                updateState(chAreas, new StringType(c.getReadAreas().toString()));
+                updateState(chAreas,
+                        new StringType((c.getReadAreas().size() == 0) ? "none" : c.getReadAreas().toString()));
             }
         }
 
