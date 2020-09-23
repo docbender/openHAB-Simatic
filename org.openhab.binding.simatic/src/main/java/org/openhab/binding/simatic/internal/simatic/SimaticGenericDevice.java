@@ -51,6 +51,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     protected final ScheduledExecutorService scheduler = ThreadPoolManager
             .getScheduledPool(THING_HANDLER_THREADPOOL_NAME);
 
+    // TODO: scantime into config UI
     private final int DEFAULT_SCANTIME = 5000;
 
     private static final int RECONNECT_DELAY_MAX = 15;
@@ -526,13 +527,13 @@ public class SimaticGenericDevice implements SimaticIDevice {
                 item.setState(new DecimalType(bb.getFloat()));
             } else {
                 final int intValue;
-                if (item.getStateAddress().dataType == SimaticPLCDataTypes.BIT) {
+                if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
                     intValue = (bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? 1 : 0;
-                } else if (item.getStateAddress().dataType == SimaticPLCDataTypes.BYTE) {
+                } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BYTE) {
                     intValue = bb.get();
-                } else if (item.getStateAddress().dataType == SimaticPLCDataTypes.WORD) {
+                } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.WORD) {
                     intValue = bb.getShort();
-                } else if (item.getStateAddress().dataType == SimaticPLCDataTypes.DWORD) {
+                } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.DWORD) {
                     intValue = bb.getInt();
                 } else {
                     intValue = 0;
@@ -543,7 +544,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
         } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_DIMMER)) {
             item.setState(new PercentType(bb.get()));
         } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_CONTACT)) {
-            if (item.getStateAddress().dataType == SimaticPLCDataTypes.BIT) {
+            if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
                 item.setState(
                         (bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? OpenClosedType.OPEN
                                 : OpenClosedType.CLOSED);
@@ -551,7 +552,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
                 item.setState((bb.get() != 0) ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
             }
         } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_SWITCH)) {
-            if (item.getStateAddress().dataType == SimaticPLCDataTypes.BIT) {
+            if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
                 item.setState((bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? OnOffType.ON
                         : OnOffType.OFF);
             } else {

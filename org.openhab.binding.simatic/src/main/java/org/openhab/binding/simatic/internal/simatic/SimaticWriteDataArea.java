@@ -8,10 +8,19 @@
  */
 package org.openhab.binding.simatic.internal.simatic;
 
+import java.nio.ByteBuffer;
+
+import org.openhab.binding.simatic.internal.SimaticBindingConstants;
 import org.openhab.binding.simatic.internal.libnodave.Nodave;
+import org.openhab.core.library.types.DecimalType;
+import org.openhab.core.library.types.HSBType;
+import org.openhab.core.library.types.OnOffType;
+import org.openhab.core.library.types.OpenClosedType;
+import org.openhab.core.library.types.PercentType;
+import org.openhab.core.library.types.StopMoveType;
+import org.openhab.core.library.types.StringType;
+import org.openhab.core.library.types.UpDownType;
 import org.openhab.core.types.Command;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -21,322 +30,151 @@ import org.slf4j.LoggerFactory;
  * @since 1.14.0
  */
 public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
-
-    private static final Logger logger = LoggerFactory.getLogger(SimaticWriteDataArea.class);
-
     static int INCREASE_STEP = 5;
     /** data limit PDU size depending **/
     int dataLimit = MAX_DATA_LENGTH;
-    // FIXME
-
-    public static SimaticWriteDataArea create(Command command, SimaticChannel config, int pduSize) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("create(): item:" + config.channelId.getAsString() + "|address:" + config.getCommandAddress());
-        }
-
-        return null;
-    }
-
-    /*
-     * byte[] data = null;
-     *
-     * switch (config.getDataType()) {
-     * case BYTE:
-     * if (command instanceof PercentType) {
-     * PercentType cmd = (PercentType) command;
-     * data = new byte[] { cmd.byteValue() };
-     *
-     * if (config.getOpenHabItem().getClass().isAssignableFrom(DimmerItem.class)) {
-     * ((DimmerItem) config.item).setState(new PercentType(cmd.byteValue()));
-     * } else if (config.getOpenHabItem().getClass().isAssignableFrom(RollershutterItem.class)) {
-     * ((RollershutterItem) config.item).setState(new PercentType(cmd.byteValue()));
-     * }
-     * } else if (command instanceof DecimalType) {
-     * DecimalType cmd = (DecimalType) command;
-     * data = new byte[] { cmd.byteValue() };
-     * } else if (command instanceof OpenClosedType) {
-     * OpenClosedType cmd = (OpenClosedType) command;
-     * if (cmd == OpenClosedType.OPEN) {
-     * data = new byte[] { 1 };
-     * } else {
-     * data = new byte[] { 0 };
-     * }
-     * } else if (command instanceof OnOffType) {
-     * OnOffType cmd = (OnOffType) command;
-     *
-     * if (config.getOpenHabItem().getClass().isAssignableFrom(SwitchItem.class)) {
-     * if (cmd == OnOffType.ON) {
-     * data = new byte[] { 1 };
-     * } else {
-     * data = new byte[] { 0 };
-     * }
-     * } else if (config.getOpenHabItem().getClass().isAssignableFrom(DimmerItem.class)) {
-     * if (cmd == OnOffType.ON) {
-     * PercentType val = ((PercentType) (config.item).getStateAs(PercentType.class));
-     * if (val == null) {
-     * data = new byte[] { 100 };
-     * ((DimmerItem) config.item).setState(PercentType.HUNDRED);
-     * } else {
-     * data = new byte[] { val.byteValue() };
-     * ((DimmerItem) config.item).setState(PercentType.ZERO);
-     * }
-     * } else {
-     * data = new byte[] { 0 };
-     * }
-     * } else {
-     * logger.error("Unsupported command type {} for datatype {}", command.getClass().toString(),
-     * config.getDataType());
-     * }
-     *
-     * } else if (command instanceof IncreaseDecreaseType
-     * && config.getOpenHabItem().getClass().isAssignableFrom(DimmerItem.class)) {
-     * if (logger.isDebugEnabled()) {
-     * logger.debug("IncreaseDecreaseType - DimmerItem");
-     * }
-     *
-     * DecimalType val = (((DimmerItem) (config.item)).getStateAs(DecimalType.class));
-     *
-     * if (val == null) {
-     * return null;
-     * }
-     *
-     * int brightness = Math.round((val.floatValue() * 100));
-     *
-     * IncreaseDecreaseType upDownCmd = (IncreaseDecreaseType) command;
-     *
-     * if (upDownCmd == IncreaseDecreaseType.INCREASE) {
-     * brightness += INCREASE_STEP;
-     *
-     * if (brightness > 100) {
-     * brightness = 100;
-     * }
-     * } else {
-     * brightness -= INCREASE_STEP;
-     *
-     * if (brightness < 0) {
-     * brightness = 0;
-     * }
-     * }
-     *
-     * data = new byte[] { (byte) brightness };
-     *
-     * ((DimmerItem) config.item).setState(new PercentType(brightness));
-     * } else {
-     * logger.error("Unsupported command type {} for datatype {}", command.getClass().toString(),
-     * config.getDataType());
-     * return null;
-     * }
-     * break;
-     * case WORD:
-     * if (command instanceof PercentType) {
-     * PercentType cmd = (PercentType) command;
-     * data = new byte[] { cmd.byteValue(), 0x0 };
-     * } else if (command instanceof DecimalType) {
-     * DecimalType cmd = (DecimalType) command;
-     * data = new byte[] { (byte) ((cmd.intValue() >> 8) & 0xFF), (byte) (cmd.intValue() & 0xFF) };
-     * } else if (command instanceof StopMoveType) {
-     * StopMoveType cmd = (StopMoveType) command;
-     * data = new byte[] { 0x0, (byte) (cmd.equals(StopMoveType.MOVE) ? 0x1 : 0x2) };
-     * } else if (command instanceof UpDownType) {
-     * UpDownType cmd = (UpDownType) command;
-     * data = new byte[] { 0x0, (byte) (cmd.equals(UpDownType.UP) ? 0x4 : 0x8) };
-     * } else {
-     * logger.error("Unsupported command type {} for datatype {}", command.getClass().toString(),
-     * config.getDataType());
-     * return null;
-     * }
-     * break;
-     * case DWORD:
-     * if (command instanceof DecimalType) {
-     * DecimalType cmd = (DecimalType) command;
-     * data = new byte[] { (byte) ((cmd.intValue() >> 24) & 0xFF), (byte) ((cmd.intValue() >> 16) & 0xFF),
-     * (byte) ((cmd.intValue() >> 8) & 0xFF), (byte) (cmd.intValue() & 0xFF) };
-     * } else {
-     * logger.error("Unsupported command type {} for datatype {}", command.getClass().toString(),
-     * config.getDataType());
-     * return null;
-     * }
-     * break;
-     * case FLOAT:
-     * if (command instanceof DecimalType) {
-     * DecimalType cmd = (DecimalType) command;
-     * float value = cmd.floatValue();
-     * int bits = Float.floatToIntBits(value);
-     *
-     * data = new byte[] { (byte) ((bits >> 24) & 0xFF), (byte) ((bits >> 16) & 0xFF),
-     * (byte) ((bits >> 8) & 0xFF), (byte) (bits & 0xFF) };
-     * } else {
-     * logger.error("Unsupported command type {} for datatype {}", command.getClass().toString(),
-     * config.getDataType());
-     * return null;
-     * }
-     * break;
-     * case HSB:
-     * case RGB:
-     * case RGBW:
-     *
-     * HSBType hsbVal;
-     * Item item = config.item;
-     *
-     * if (logger.isDebugEnabled()) {
-     * logger.debug(item.toString());
-     * }
-     *
-     * if (command instanceof OnOffType) {
-     * if (logger.isDebugEnabled()) {
-     * logger.debug("OnOffType");
-     * }
-     * OnOffType onOffCmd = (OnOffType) command;
-     *
-     * if (onOffCmd == OnOffType.OFF) {
-     * hsbVal = new HSBType(new Color(0, 0, 0));
-     * } else {
-     * hsbVal = (item.getStateAs(HSBType.class));
-     * }
-     * } else if (command instanceof IncreaseDecreaseType) {
-     * if (logger.isDebugEnabled()) {
-     * logger.debug("IncreaseDecreaseType");
-     * }
-     *
-     * hsbVal = (item.getStateAs(HSBType.class));
-     * int brightness = hsbVal.getBrightness().intValue();
-     *
-     * IncreaseDecreaseType upDownCmd = (IncreaseDecreaseType) command;
-     *
-     * if (upDownCmd == IncreaseDecreaseType.INCREASE) {
-     * brightness += INCREASE_STEP;
-     *
-     * if (brightness > 100) {
-     * brightness = 100;
-     * }
-     * } else {
-     * brightness -= INCREASE_STEP;
-     *
-     * if (brightness < 0) {
-     * brightness = 0;
-     * }
-     * }
-     *
-     * hsbVal = new HSBType(hsbVal.getHue(), hsbVal.getSaturation(), new PercentType(brightness));
-     *
-     * ((ColorItem) item).setState(hsbVal);
-     * } else if (command instanceof HSBType) {
-     * if (logger.isDebugEnabled()) {
-     * logger.debug("HSBType");
-     * }
-     * hsbVal = (HSBType) command;
-     *
-     * ((ColorItem) item).setState(hsbVal);
-     * } else if (command instanceof PercentType) {
-     * if (logger.isDebugEnabled()) {
-     * logger.debug("PercentType");
-     * }
-     * hsbVal = (item.getStateAs(HSBType.class));
-     * } else {
-     * logger.error("Unsupported command type {} for datatype {}", command.getClass().toString(),
-     * config.getDataType());
-     * return null;
-     * }
-     *
-     * if (hsbVal != null) {
-     * if (logger.isTraceEnabled()) {
-     * logger.trace("Item {}: Red={} Green={} Blue={}", item.getName(), hsbVal.getRed(),
-     * hsbVal.getGreen(), hsbVal.getBlue());
-     * logger.trace("         Hue={} Sat={} Bri={}", hsbVal.getHue(), hsbVal.getSaturation(),
-     * hsbVal.getBrightness());
-     * }
-     *
-     * HSBType cmd = hsbVal;
-     *
-     * if (config.getDataType() == SimaticTypes.HSB) {
-     * data = new byte[] { cmd.getHue().byteValue(), cmd.getSaturation().byteValue(),
-     * cmd.getBrightness().byteValue(), 0x0 };
-     * } else if (config.getDataType() == SimaticTypes.RGB) {
-     * long red = Math.round((cmd.getRed().doubleValue() * 2.55));
-     * long green = Math.round((cmd.getGreen().doubleValue() * 2.55));
-     * long blue = Math.round((cmd.getBlue().doubleValue() * 2.55));
-     *
-     * if (red > 255) {
-     * red = 255;
-     * }
-     * if (green > 255) {
-     * green = 255;
-     * }
-     * if (blue > 255) {
-     * blue = 255;
-     * }
-     *
-     * if (logger.isDebugEnabled()) {
-     * logger.debug("         Converted to 0-255: Red={} Green={} Blue={}", red, green, blue);
-     * }
-     *
-     * data = new byte[] { (byte) (red & 0xFF), (byte) (green & 0xFF), (byte) (blue & 0xFF), 0x0 };
-     * } else if (config.getDataType() == SimaticTypes.RGBW) {
-     * long red = Math.round((cmd.getRed().doubleValue() * 2.55));
-     * long green = Math.round((cmd.getGreen().doubleValue() * 2.55));
-     * long blue = Math.round((cmd.getBlue().doubleValue() * 2.55));
-     * byte white;
-     *
-     * if (red > 255) {
-     * red = 255;
-     * }
-     * if (green > 255) {
-     * green = 255;
-     * }
-     * if (blue > 255) {
-     * blue = 255;
-     * }
-     *
-     * if (logger.isDebugEnabled()) {
-     * logger.debug("         Converted to 0-255: Red={} Green={} Blue={}", red, green, blue);
-     * }
-     *
-     * byte[] rgbw = calcWhite(red, green, blue);
-     * red = rgbw[0];
-     * green = rgbw[1];
-     * blue = rgbw[2];
-     * white = rgbw[3];
-     *
-     * if (logger.isDebugEnabled()) {
-     * logger.debug("         Converted to RGBW: Red={} Green={} Blue={} White={}", red & 0xFF,
-     * green & 0xFF, blue & 0xFF, white & 0xFF);
-     * }
-     *
-     * data = new byte[] { (byte) (red & 0xFF), (byte) (green & 0xFF), (byte) (blue & 0xFF), white };
-     * }
-     * }
-     *
-     * break;
-     * case ARRAY:
-     * if (command instanceof StringType) {
-     * StringType cmd = (StringType) command;
-     * String str = cmd.toString();
-     *
-     * data = new byte[config.getAddress().getDataLength()];
-     *
-     * for (int i = 0; i < config.getDataLength(); i++) {
-     * if (str.length() <= config.getDataLength()) {
-     * data[i] = (byte) str.charAt(i);
-     * } else {
-     * data[i] = 0x0;
-     * }
-     * }
-     * } else {
-     * logger.error("Unsupported command type {} for datatype {}", command.getClass().toString(),
-     * config.getDataType());
-     * return null;
-     * }
-     * break;
-     * default:
-     * return null;
-     * }
-     *
-     * return new SimaticWriteDataArea(config.getAddress(), data, pduSize);
-     * }
-     */
 
     protected byte[] itemData;
+
     protected SimaticPLCAddress address;
+
+    public static SimaticWriteDataArea create(Command command, SimaticChannel channel, int pduSize) throws Exception {
+
+        var address = channel.getCommandAddress();
+
+        if (address == null) {
+            throw new Exception("Cannot create WriteDataArea. Command address not specified.");
+        }
+
+        byte[] data = null;
+
+        if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_NUMBER)) {
+            if (!(command instanceof DecimalType)) {
+                throw new Exception(
+                        String.format("Cannot create WriteDataArea. Command for ChannelType=%s must be DecimalType",
+                                channel.channelType.getId()));
+            }
+            DecimalType cmd = (DecimalType) command;
+            if (address.getSimaticDataType() == SimaticPLCDataTypes.BYTE) {
+                data = new byte[] { cmd.byteValue() };
+            } else if (address.getSimaticDataType() == SimaticPLCDataTypes.WORD) {
+                data = new byte[] { (byte) ((cmd.intValue() >> 8) & 0xFF), (byte) (cmd.intValue() & 0xFF) };
+            } else if (address.getSimaticDataType() == SimaticPLCDataTypes.DWORD) {
+                if (address.isFloat()) {
+                    float value = cmd.floatValue();
+                    int bits = Float.floatToIntBits(value);
+                    data = new byte[] { (byte) ((bits >> 24) & 0xFF), (byte) ((bits >> 16) & 0xFF),
+                            (byte) ((bits >> 8) & 0xFF), (byte) (bits & 0xFF) };
+                } else {
+                    data = new byte[] { (byte) ((cmd.intValue() >> 24) & 0xFF), (byte) ((cmd.intValue() >> 16) & 0xFF),
+                            (byte) ((cmd.intValue() >> 8) & 0xFF), (byte) (cmd.intValue() & 0xFF) };
+                }
+            } else {
+                throw new Exception(String.format(
+                        "Cannot create WriteDataArea. Command for ChannelType=%s has unsupported datatype=%s",
+                        channel.channelType.getId(), address.getSimaticDataType()));
+            }
+        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_STRING)) {
+
+            if (!(command instanceof StringType)) {
+                throw new Exception(
+                        String.format("Cannot create WriteDataArea. Command for ChannelType=%s must be StringType",
+                                channel.channelType.getId()));
+            }
+            StringType cmd = (StringType) command;
+            String str = cmd.toString();
+
+            data = new byte[address.getDataLength()];
+
+            for (int i = 0; i < address.getDataLength(); i++) {
+                if (str.length() <= address.getDataLength()) {
+                    data[i] = (byte) str.charAt(i);
+                } else {
+                    data[i] = 0x0;
+                }
+            }
+        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_SWITCH)) {
+            if (!(command instanceof OnOffType)) {
+                throw new Exception(
+                        String.format("Cannot create WriteDataArea. Command for ChannelType=%s must be OnOffType",
+                                channel.channelType.getId()));
+            }
+
+            OnOffType cmd = (OnOffType) command;
+
+            if (cmd == OnOffType.ON) {
+                data = new byte[] { 1 };
+            } else {
+                data = new byte[] { 0 };
+            }
+        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_CONTACT)) {
+            if (!(command instanceof OpenClosedType)) {
+                throw new Exception(
+                        String.format("Cannot create WriteDataArea. Command for ChannelType=%s must be OpenClosedType",
+                                channel.channelType.getId()));
+            }
+
+            OpenClosedType cmd = (OpenClosedType) command;
+
+            if (cmd == OpenClosedType.OPEN) {
+                data = new byte[] { 1 };
+            } else {
+                data = new byte[] { 0 };
+            }
+        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_COLOR)) {
+            if (command instanceof HSBType) {
+                long red = Math.round((((HSBType) command).getRed().doubleValue() * 2.55));
+                long green = Math.round((((HSBType) command).getGreen().doubleValue() * 2.55));
+                long blue = Math.round((((HSBType) command).getBlue().doubleValue() * 2.55));
+
+                if (red > 255) {
+                    red = 255;
+                }
+                if (green > 255) {
+                    green = 255;
+                }
+                if (blue > 255) {
+                    blue = 255;
+                }
+
+                data = new byte[] { (byte) (red & 0xFF), (byte) (green & 0xFF), (byte) (blue & 0xFF), 0x0 };
+            } else {
+                throw new Exception(
+                        String.format("Cannot create WriteDataArea. Command %s for ChannelType=%s not implemented",
+                                command.getClass(), channel.channelType.getId()));
+            }
+        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_DIMMER)) {
+            if (command instanceof PercentType) {
+                data = new byte[] { ((PercentType) command).byteValue() };
+            } else if (command instanceof OnOffType) {
+                if (((OnOffType) command) == OnOffType.ON) {
+                    data = new byte[] { 100 };
+                } else {
+                    data = new byte[] { 0 };
+                }
+            } else {
+                throw new Exception(
+                        String.format("Cannot create WriteDataArea. Command %s for ChannelType=%s not implemented",
+                                command.getClass(), channel.channelType.getId()));
+            }
+        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_ROLLERSHUTTER)) {
+            if (command instanceof StopMoveType) {
+                data = new byte[] { (byte) (((StopMoveType) command).equals(StopMoveType.MOVE) ? 0x1 : 0x2) };
+            } else if (command instanceof UpDownType) {
+                data = new byte[] { (byte) (((UpDownType) command).equals(UpDownType.UP) ? 0x4 : 0x8) };
+            } else {
+                throw new Exception(
+                        String.format("Cannot create WriteDataArea. Command %s for ChannelType=%s not implemented",
+                                command.getClass(), channel.channelType.getId()));
+            }
+        } else {
+            throw new Exception(
+                    String.format("Cannot create WriteDataArea. Command for ChannelType=%s not implemented.",
+                            channel.channelType.getId()));
+        }
+
+        return new SimaticWriteDataArea(address, data, pduSize);
+    }
 
     /**
      * Construct item data instance for unspecified item
@@ -461,75 +299,74 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
     public boolean isItemOutOfRange(SimaticPLCAddress itemAddress) {
         // must be in area, eventually same DB, not bit, without any space between data, in max frame size
         return itemAddress.getArea() != this.getArea()
-                || (this.getArea() == SimaticPLCAreaTypes.DB && !address.dBNum.equals(itemAddress.dBNum))
+                || (this.getArea() == SimaticPLCAreaTypes.DB && address.getDBNumber() != itemAddress.getDBNumber())
                 || itemAddress.getSimaticDataType() == SimaticPLCDataTypes.BIT
                 || this.address.getSimaticDataType() == SimaticPLCDataTypes.BIT
-                || (itemAddress.addressByte > (this.address.addressByte + this.address.getDataLength()))
-                || ((itemAddress.addressByte + itemAddress.getDataLength()) < this.address.addressByte)
-                || (itemAddress.addressByte + itemAddress.getDataLength() - this.address.addressByte > dataLimit)
-                || (this.address.addressByte + this.getAddressSpaceLength() - itemAddress.addressByte > dataLimit);
+                || (itemAddress.getByteOffset() > (this.address.getByteOffset() + this.address.getDataLength()))
+                || ((itemAddress.getByteOffset() + itemAddress.getDataLength()) < this.address.getByteOffset())
+                || (itemAddress.getByteOffset() + itemAddress.getDataLength()
+                        - this.address.getByteOffset() > dataLimit)
+                || (this.address.getByteOffset() + this.getAddressSpaceLength()
+                        - itemAddress.getByteOffset() > dataLimit);
     }
 
     public void insert(SimaticWriteDataArea data) {
-        // FIXME
-        /*
-         * if (this.getStartAddress() > data.getStartAddress()) {
-         * // new length
-         * this.address.dataLength = (((this.getStartAddress()
-         * + this.getAddressSpaceLength()) > (data.getStartAddress() + data.getAddressSpaceLength()))
-         * ? (this.getStartAddress() + this.getAddressSpaceLength())
-         * : (data.getStartAddress() + data.getAddressSpaceLength()))
-         * - this.address.addressByte;
-         * // data array
-         * ByteBuffer newDataBuffer = ByteBuffer.wrap(new byte[this.address.dataLength]);
-         * // put new data
-         * newDataBuffer.put(data.getData());
-         * // and behind rest of old
-         * newDataBuffer.put(this.getData(),
-         * data.getAddressSpaceLength() - (this.getStartAddress() - data.getStartAddress()),
-         * this.getAddressSpaceLength()
-         * - (data.getAddressSpaceLength() - (this.getStartAddress() - data.getStartAddress())));
-         * // new start address
-         * this.address.addressByte = data.getStartAddress();
-         * this.itemData = newDataBuffer.array();
-         *
-         * } else if (this.getStartAddress() < data.getStartAddress()) {
-         * if ((this.getStartAddress() + this.getAddressSpaceLength()) < (data.getStartAddress()
-         * + data.getAddressSpaceLength())) {
-         * int oldDataLength = this.address.dataLength;
-         * this.address.dataLength += (data.getStartAddress() + data.getAddressSpaceLength())
-         * - (this.getStartAddress() + this.getAddressSpaceLength());
-         * // data array
-         * byte[] newData = new byte[this.address.dataLength];
-         * // old data
-         * for (int i = 0; i < oldDataLength; i++) {
-         * newData[i] = this.itemData[i];
-         * }
-         * int offset = data.getStartAddress() - this.getStartAddress();
-         * // then new data
-         * for (int i = 0; i < data.getAddressSpaceLength(); i++) {
-         * newData[offset + i] = data.itemData[i];
-         * }
-         * }
-         * } else if (this.getAddressSpaceLength() < data.getAddressSpaceLength()) {
-         * int oldDataLength = this.address.dataLength;
-         * this.address.dataLength += data.getAddressSpaceLength() - this.getAddressSpaceLength();
-         * // data array
-         * byte[] newData = new byte[this.address.dataLength];
-         * // old data
-         * for (int i = 0; i < oldDataLength; i++) {
-         * newData[i] = this.itemData[i];
-         * }
-         * // then new data
-         * for (int i = 0; i < data.getAddressSpaceLength(); i++) {
-         * newData[i] = data.itemData[i];
-         * }
-         * } else {
-         * // write new data over old
-         * for (int i = 0; i < data.getAddressSpaceLength(); i++) {
-         * itemData[i] = data.itemData[i];
-         * }
-         * }
-         */
+        if (this.getStartAddress() > data.getStartAddress()) {
+            // new length
+            this.address
+                    .setDataLength((((this.getStartAddress() + this.getAddressSpaceLength()) > (data.getStartAddress()
+                            + data.getAddressSpaceLength())) ? (this.getStartAddress() + this.getAddressSpaceLength())
+                                    : (data.getStartAddress() + data.getAddressSpaceLength()))
+                            - this.address.getByteOffset());
+            // data array
+            ByteBuffer newDataBuffer = ByteBuffer.wrap(new byte[this.address.getDataLength()]);
+            // put new data
+            newDataBuffer.put(data.getData());
+            // and behind rest of old
+            newDataBuffer.put(this.getData(),
+                    data.getAddressSpaceLength() - (this.getStartAddress() - data.getStartAddress()),
+                    this.getAddressSpaceLength()
+                            - (data.getAddressSpaceLength() - (this.getStartAddress() - data.getStartAddress())));
+            // new start address
+            this.address.setByteOffset(data.getStartAddress());
+            this.itemData = newDataBuffer.array();
+
+        } else if (this.getStartAddress() < data.getStartAddress()) {
+            if ((this.getStartAddress() + this.getAddressSpaceLength()) < (data.getStartAddress()
+                    + data.getAddressSpaceLength())) {
+                int oldDataLength = this.address.getDataLength();
+                this.address.setDataLength(oldDataLength + (data.getStartAddress() + data.getAddressSpaceLength())
+                        - (this.getStartAddress() + this.getAddressSpaceLength()));
+                // data array
+                byte[] newData = new byte[this.address.getDataLength()];
+                // old data
+                for (int i = 0; i < oldDataLength; i++) {
+                    newData[i] = this.itemData[i];
+                }
+                int offset = data.getStartAddress() - this.getStartAddress();
+                // then new data
+                for (int i = 0; i < data.getAddressSpaceLength(); i++) {
+                    newData[offset + i] = data.itemData[i];
+                }
+            }
+        } else if (this.getAddressSpaceLength() < data.getAddressSpaceLength()) {
+            int oldDataLength = this.address.getDataLength();
+            this.address.setDataLength(oldDataLength + data.getAddressSpaceLength() - this.getAddressSpaceLength());
+            // data array
+            byte[] newData = new byte[this.address.getDataLength()];
+            // old data
+            for (int i = 0; i < oldDataLength; i++) {
+                newData[i] = this.itemData[i];
+            }
+            // then new data
+            for (int i = 0; i < data.getAddressSpaceLength(); i++) {
+                newData[i] = data.itemData[i];
+            }
+        } else {
+            // write new data over old
+            for (int i = 0; i < data.getAddressSpaceLength(); i++) {
+                itemData[i] = data.itemData[i];
+            }
+        }
     }
 }

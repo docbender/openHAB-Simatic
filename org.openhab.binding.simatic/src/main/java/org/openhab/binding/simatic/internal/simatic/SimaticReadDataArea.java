@@ -119,10 +119,11 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
 
         // must be in area, eventually same DB, in range of maximal frame size and in defined gap space
         return itemAddress.getArea() != this.getArea()
-                || (this.getArea() == SimaticPLCAreaTypes.DB && !startAddress.dBNum.equals(itemAddress.dBNum))
-                || (itemAddress.addressByte + itemAddress.getDataLength() - this.startAddress.addressByte > dataLimit)
-                || (itemAddress.addressByte
-                        - (this.startAddress.addressByte + this.getAddressSpaceLength()) > GAP_LIMIT);
+                || (this.getArea() == SimaticPLCAreaTypes.DB && startAddress.getDBNumber() != itemAddress.getDBNumber())
+                || (itemAddress.getByteOffset() + itemAddress.getDataLength()
+                        - this.startAddress.getByteOffset() > dataLimit)
+                || (itemAddress.getByteOffset()
+                        - (this.startAddress.getByteOffset() + this.getAddressSpaceLength()) > GAP_LIMIT);
     }
 
     @Override

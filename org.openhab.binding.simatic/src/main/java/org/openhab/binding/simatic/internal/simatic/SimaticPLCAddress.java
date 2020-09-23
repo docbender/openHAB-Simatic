@@ -23,29 +23,13 @@ import org.slf4j.LoggerFactory;
 public class SimaticPLCAddress implements Comparable {
     private static final Logger logger = LoggerFactory.getLogger(SimaticPLCAddress.class);
 
-    // final String address;
-    final Integer addressByte;
-    final Integer addressBit;
-    final Integer dBNum;
-    final boolean floatNumber;
-    SimaticPLCAreaTypes area = SimaticPLCAreaTypes.UNKNOWN_AREA;
-    SimaticPLCDataTypes dataType = SimaticPLCDataTypes.UNKNOWN_TYPE;
-    final Integer dataLength;
-    // @Nullable SimaticTypes datatype;
-
-    /*
-     * public SimaticPLCAddress(String address) {
-     * this.address = address;
-     *
-     * this.dataLength = prepareAddress();
-     * }
-     *
-     * public SimaticPLCAddress(String address, int dataLength) {
-     * this.address = address;
-     * this.dataLength = dataLength;
-     * prepareAddress();
-     * }
-     */
+    private Integer addressByte;
+    private Integer addressBit;
+    private Integer dBNum;
+    private boolean floatNumber;
+    private SimaticPLCAreaTypes area = SimaticPLCAreaTypes.UNKNOWN_AREA;
+    private SimaticPLCDataTypes dataType = SimaticPLCDataTypes.UNKNOWN_TYPE;
+    private Integer dataLength;
 
     /**
      * Constructor NonDatablock area like MB10
@@ -168,6 +152,10 @@ public class SimaticPLCAddress implements Comparable {
 
     public int getByteOffset() {
         return addressByte;
+    }
+
+    public void setByteOffset(int address) {
+        addressByte = address;
     }
 
     public int getBitOffset() {
@@ -310,6 +298,10 @@ public class SimaticPLCAddress implements Comparable {
 
     public int getDataLength() {
         return dataLength;
+    }
+
+    public void setDataLength(int length) {
+        dataLength = length;
     }
 
     public SimaticPLCDataTypes getSimaticDataType() {
