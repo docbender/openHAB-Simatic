@@ -151,7 +151,7 @@ public class SimaticGenericHandler extends BaseThingHandler {
 
         // get cached values
         if (command instanceof RefreshType) {
-            logger.error("{} - command: RefreshType not implemented");
+            logger.error("{} - command: RefreshType not implemented", thing.getLabel());
             // updateState(channelUID, value);
             return;
         }

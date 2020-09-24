@@ -142,8 +142,10 @@ public class SimaticTCP extends SimaticGenericDevice {
             tryReconnect.set(true);
             return false;
         } finally {
-            execute();
+
         }
+
+        execute();
         return true;
     }
 
@@ -159,24 +161,24 @@ public class SimaticTCP extends SimaticGenericDevice {
         if (dc != null) {
             try {
                 dc.disconnectPLC();
-            } catch (IOException ex) {
-
+            } catch (Exception ex) {
+                logger.error("{} - disconnectPLC error.", this.toString(), ex);
             }
             dc = null;
         }
         if (di != null) {
             try {
                 di.disconnectAdapter();
-            } catch (IOException ex) {
-
+            } catch (Exception ex) {
+                logger.error("{} - disconnectAdapter error.", this.toString(), ex);
             }
             di = null;
         }
         if (sock != null) {
             try {
                 sock.close();
-            } catch (IOException e) {
-                logger.error("{} - socket close error: {}", this.toString(), e.getMessage());
+            } catch (Exception ex) {
+                logger.error("{} - socket close error.", this.toString(), ex);
             } finally {
                 sock = null;
                 oStream = null;

@@ -184,10 +184,9 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
         // background initialization
         scheduler.execute(() -> {
-            if (connection.open()) {
-                updateStatus(ThingStatus.ONLINE);
-            } else {
+            while (!connection.open()) {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
+                connection.reconnectWithDelaying();
             }
         });
     }
@@ -218,6 +217,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
         // get cached values
         if (command instanceof RefreshType) {
+            logger.error("{} - command: RefreshType not implemented", thing.getLabel());
             // updateState(channelUID, value);
         }
     }

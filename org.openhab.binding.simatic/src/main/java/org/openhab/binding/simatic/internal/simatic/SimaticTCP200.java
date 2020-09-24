@@ -82,9 +82,10 @@ public class SimaticTCP200 extends SimaticTCP {
             tryReconnect.set(true);
             return false;
         } finally {
-            execute();
+
         }
 
+        execute();
         return true;
     }
 }
