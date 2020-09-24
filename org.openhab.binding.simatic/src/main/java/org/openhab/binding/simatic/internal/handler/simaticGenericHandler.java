@@ -170,6 +170,11 @@ public class SimaticGenericHandler extends BaseThingHandler {
     }
 
     @Override
+    public void handleRemoval() {
+        super.handleRemoval();
+    }
+
+    @Override
     public void updateState(ChannelUID channelUID, State state) {
         super.updateState(channelUID, state);
     }

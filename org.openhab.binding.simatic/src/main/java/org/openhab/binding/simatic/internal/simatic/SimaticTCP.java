@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.charset.Charset;
 
 import org.openhab.binding.simatic.internal.libnodave.Nodave;
 import org.openhab.binding.simatic.internal.libnodave.PLCinterface;
@@ -50,9 +51,11 @@ public class SimaticTCP extends SimaticGenericDevice {
      * @param address
      * @param rack
      * @param slot
+     * @param pollRate
+     * @param charset
      */
-    public SimaticTCP(String address, int rack, int slot) {
-        super();
+    public SimaticTCP(String address, int rack, int slot, int pollRate, Charset charset) {
+        super(pollRate, charset);
 
         this.plcAddress = address;
         this.rack = rack;
@@ -68,9 +71,11 @@ public class SimaticTCP extends SimaticGenericDevice {
      * @param rack
      * @param slot
      * @param communicationType
+     * @param pollRate
+     * @param charset
      */
-    public SimaticTCP(String address, int rack, int slot, String communicationType) {
-        super();
+    public SimaticTCP(String address, int rack, int slot, String communicationType, int pollRate, Charset charset) {
+        super(pollRate, charset);
 
         this.plcAddress = address;
         this.rack = rack;
@@ -137,7 +142,7 @@ public class SimaticTCP extends SimaticGenericDevice {
             tryReconnect.set(true);
             return false;
         } finally {
-
+            execute();
         }
         return true;
     }

@@ -51,9 +51,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
     protected final ScheduledExecutorService scheduler = ThreadPoolManager
             .getScheduledPool(THING_HANDLER_THREADPOOL_NAME);
 
-    // TODO: scantime into config UI
-    private final int DEFAULT_SCANTIME = 5000;
-
     private static final int RECONNECT_DELAY_MAX = 15;
     private int rcTest = 0;
     private int rcTestMax = 0;
@@ -74,11 +71,14 @@ public class SimaticGenericDevice implements SimaticIDevice {
     protected final Lock lock = new ReentrantLock();
     protected final Lock readLock = new ReentrantLock();
     /** Read PLC areas **/
-    protected SimaticReadQueue readAreasList = new SimaticReadQueue();
+    protected final SimaticReadQueue readAreasList = new SimaticReadQueue();
     /** try reconnect flag when read/write function failure **/
-    protected AtomicBoolean tryReconnect = new AtomicBoolean(false);
+    protected final AtomicBoolean tryReconnect = new AtomicBoolean(false);
     /** PDU size **/
     protected int pduSize = 0;
+    protected final Charset charset;
+
+    protected boolean disposed = false;
 
     long readed = 0;
     long readedBytes = 0;
@@ -96,23 +96,31 @@ public class SimaticGenericDevice implements SimaticIDevice {
         UNKNOWN_MESSAGE_REWIND
     }
 
-    private @Nullable ScheduledFuture periodicJob;
+    private @Nullable ScheduledFuture periodicJob = null;
 
     /**
      * Constructor
      *
      */
-    public SimaticGenericDevice() {
-        periodicJob = scheduler.scheduleAtFixedRate(() -> {
-            execute();
-        }, 500, DEFAULT_SCANTIME, TimeUnit.MILLISECONDS);
+    public SimaticGenericDevice(int pollRate, Charset charset) {
+        this.charset = charset;
+        if (pollRate > 0) {
+            periodicJob = scheduler.scheduleAtFixedRate(() -> {
+                execute();
+            }, 500, pollRate, TimeUnit.MILLISECONDS);
+        }
     }
 
     @Override
     public void dispose() {
+        if (disposed) {
+            return;
+        }
+        disposed = true;
         close();
         if (periodicJob != null) {
             periodicJob.cancel(true);
+            periodicJob = null;
         }
     }
 
@@ -126,6 +134,17 @@ public class SimaticGenericDevice implements SimaticIDevice {
         if (isConnected()) {
             // check device for new data
             checkNewData();
+        }
+
+        if (periodicJob == null && !disposed) {
+            if (!isConnected()) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            execute();
         }
     }
 
@@ -510,8 +529,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
         // }
 
         if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_STRING)) {
-            // TODO: get charset from UI
-            Charset charset = Charset.forName("CP1250");
             // check for '\0' char and resolve string length
             int i;
             for (i = position; i < item.getStateAddress().getDataLength(); i++) {

@@ -22,19 +22,19 @@
 				<description>Network IP/Host address of PLC</description>
 				<context>network-address</context>
 			</parameter>
-			<parameter name="rack" type="integer" required="true">
+			<parameter name="rack" type="integer" min="0" max="2" required="true">
 				<label>Rack number</label>
 				<description>The rack number in which CPU is presented</description>
 				<default>0</default>
 			</parameter>
-			<parameter name="slot" type="integer" required="true">
+			<parameter name="slot" type="integer" min="0" max="15" required="true">
 				<label>Rack number</label>
 				<description>The slot number where CPU is inserted</description>
 				<default>2</default>
 			</parameter>
-			<parameter name="pollRate" type="integer" min="100" required="true">
-                <label>Poll rate</label>
-                <description>Determine period of data read from device</description>
+			<parameter name="pollRate" type="integer" min="0" required="true">
+                <label>Poll rate [ms]</label>
+                <description>Determine period of data read from device. </description>
                 <default>1000</default>
                 <advanced>true</advanced>
             </parameter>
@@ -115,7 +115,7 @@
     <channel-type id="chBytesTypeID">
         <item-type>Number</item-type>
         <label>Bytes/s</label>
-        <description>Bytes per second to device</description>
+        <description>Bytes per second grabbed from device</description>
         <state pattern="%d B/s" readOnly="true" />        
     </channel-type> 
         

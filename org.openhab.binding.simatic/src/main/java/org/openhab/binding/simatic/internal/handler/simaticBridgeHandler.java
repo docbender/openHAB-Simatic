@@ -12,6 +12,7 @@
  */
 package org.openhab.binding.simatic.internal.handler;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 import org.eclipse.jdt.annotation.NonNull;
@@ -91,8 +92,9 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
         config = getConfigAs(SimaticBridgeConfiguration.class);
 
-        logger.debug("{} - Bridge configuration: Host/IP={},Rack={},Slot={},Comm={},Is200={}", getThing().getLabel(),
-                config.address, config.rack, config.slot, config.communicationType, config.isS7200);
+        logger.debug("{} - Bridge configuration: Host/IP={},Rack={},Slot={},Comm={},Is200={},Charset={},PollRate={}",
+                getThing().getLabel(), config.address, config.rack, config.slot, config.communicationType,
+                config.isS7200, config.charset, config.pollRate);
 
         // configuration validation
         boolean valid = true;
@@ -124,6 +126,25 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
             return;
         }
 
+        if (config.pollRate <= 0) {
+            logger.warn(
+                    "{} - poll rate is set to 0. That means new data will be read immediately after previous one will be finished.",
+                    getThing().getLabel());
+        }
+
+        Charset charset;
+        if (config.charset == null || config.charset.isBlank()) {
+            charset = Charset.defaultCharset();
+        } else if (!Charset.isSupported(config.charset)) {
+            charset = Charset.defaultCharset();
+            logger.warn("{} - charset '{}' is not recognized. Default one is used.", getThing().getLabel(),
+                    config.charset);
+        } else {
+            charset = Charset.forName(config.charset);
+        }
+
+        logger.info("{} - Current charset {}", getThing().getLabel(), charset.name());
+
         if (!valid) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR);
             logger.error("{} - Bridge configuration is invalid. Host/IP={},Rack={},Slot={},Comm={},Is200={}",
@@ -133,9 +154,10 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
         // S7-200 PLC
         if (config.isS7200) {
-            connection = new SimaticTCP200(config.address, config.rack, config.slot);
+            connection = new SimaticTCP200(config.address, config.rack, config.slot, config.pollRate, charset);
         } else {
-            connection = new SimaticTCP(config.address, config.rack, config.slot, config.communicationType);
+            connection = new SimaticTCP(config.address, config.rack, config.slot, config.communicationType,
+                    config.pollRate, charset);
         }
 
         // react on connection changes
@@ -198,6 +220,11 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         if (command instanceof RefreshType) {
             // updateState(channelUID, value);
         }
+    }
+
+    @Override
+    public void handleRemoval() {
+        super.handleRemoval();
     }
 
     /**

@@ -43,4 +43,14 @@ public class SimaticBridgeConfiguration {
      * Is device S7-200 PLC (CP242)
      */
     public boolean isS7200 = false;
+
+    /**
+     * String data code page
+     */
+    public String charset = "";
+
+    /**
+     * Device poll rate
+     */
+    public int pollRate = 1000;
 }

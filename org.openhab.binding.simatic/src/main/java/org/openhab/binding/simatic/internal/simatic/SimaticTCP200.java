@@ -9,6 +9,7 @@
 package org.openhab.binding.simatic.internal.simatic;
 
 import java.net.Socket;
+import java.nio.charset.Charset;
 
 import org.openhab.binding.simatic.internal.libnodave.Nodave;
 import org.openhab.binding.simatic.internal.libnodave.PLCinterface;
@@ -33,9 +34,11 @@ public class SimaticTCP200 extends SimaticTCP {
      * @param address
      * @param rack
      * @param slot
+     * @param charset
+     * @param pollRate
      */
-    public SimaticTCP200(String address, int rack, int slot) {
-        super(address, rack, slot);
+    public SimaticTCP200(String address, int rack, int slot, int pollRate, Charset charset) {
+        super(address, rack, slot, pollRate, charset);
     }
 
     /**
@@ -79,7 +82,7 @@ public class SimaticTCP200 extends SimaticTCP {
             tryReconnect.set(true);
             return false;
         } finally {
-
+            execute();
         }
 
         return true;
