@@ -91,7 +91,7 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
             var bytes = str.getBytes(charset);
 
             for (int i = 0; i < address.getDataLength(); i++) {
-                if (str.length() <= address.getDataLength() && bytes.length <= address.getDataLength()) {
+                if (i < bytes.length) {
                     data[i] = bytes[i];
                 } else {
                     data[i] = 0x0;
