@@ -9,6 +9,7 @@
 package org.openhab.binding.simatic.internal.simatic;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 import org.openhab.binding.simatic.internal.SimaticBindingConstants;
 import org.openhab.binding.simatic.internal.libnodave.Nodave;
@@ -38,7 +39,8 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
 
     protected SimaticPLCAddress address;
 
-    public static SimaticWriteDataArea create(Command command, SimaticChannel channel, int pduSize) throws Exception {
+    public static SimaticWriteDataArea create(Command command, SimaticChannel channel, int pduSize, Charset charset)
+            throws Exception {
 
         var address = channel.getCommandAddress();
 
@@ -86,9 +88,11 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
 
             data = new byte[address.getDataLength()];
 
+            var bytes = str.getBytes(charset);
+
             for (int i = 0; i < address.getDataLength(); i++) {
-                if (str.length() <= address.getDataLength()) {
-                    data[i] = (byte) str.charAt(i);
+                if (str.length() <= address.getDataLength() && bytes.length <= address.getDataLength()) {
+                    data[i] = bytes[i];
                 } else {
                     data[i] = 0x0;
                 }

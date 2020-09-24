@@ -246,7 +246,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     @Override
     public void sendData(SimaticChannel item, Command command) {
         try {
-            var area = SimaticWriteDataArea.create(command, item, pduSize);
+            var area = SimaticWriteDataArea.create(command, item, pduSize, charset);
             sendData(area);
         } catch (Exception ex) {
             logger.error("{} - ", toString(), ex);
