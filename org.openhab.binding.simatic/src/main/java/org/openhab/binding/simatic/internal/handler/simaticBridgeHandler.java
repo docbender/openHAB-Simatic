@@ -250,6 +250,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
      */
     public void updateConfig() {
         int stateChannelCount = 0;
+        channelCount = 0;
 
         for (Thing th : getThing().getThings()) {
             var h = ((SimaticGenericHandler) th.getHandler());

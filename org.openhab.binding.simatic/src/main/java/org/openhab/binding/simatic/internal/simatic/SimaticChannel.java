@@ -109,13 +109,23 @@ public class SimaticChannel {
                             address, channelType.getId());
                     return null;
                 }
-                if (matcher.group(1) == null) {
-                    return new SimaticPLCAddress(Integer.parseInt(matcher.group(6)), matcher.group(7),
-                            Integer.parseInt(matcher.group(8)),
-                            matcher.group(9) != null && !matcher.group(9).isEmpty());
+                if (matcher.group(1) != null) {
+                    return new SimaticPLCAddress(matcher.group(2), Integer.parseInt(matcher.group(3)), false);
+                } else if (matcher.group(4) != null) {
+                    return new SimaticPLCAddress(matcher.group(5), Integer.parseInt(matcher.group(6)),
+                            matcher.group(7) != null && !matcher.group(7).isEmpty());
+                } else if (matcher.group(8) != null) {
+                    return new SimaticPLCAddress(Integer.parseInt(matcher.group(9)), matcher.group(10),
+                            Integer.parseInt(matcher.group(11)), false);
+                } else if (matcher.group(12) != null) {
+                    return new SimaticPLCAddress(Integer.parseInt(matcher.group(13)), matcher.group(14),
+                            Integer.parseInt(matcher.group(15)),
+                            matcher.group(16) != null && !matcher.group(16).isEmpty());
                 } else {
-                    return new SimaticPLCAddress(matcher.group(2), Integer.parseInt(matcher.group(3)),
-                            matcher.group(4) != null && !matcher.group(4).isEmpty());
+                    error = String.format(
+                            "Unsupported address '%s' for typeID=%s. Supported types B,W,D. Address example IB10, MW100, DB1.DBD0, DB1.DBD0F",
+                            address, channelType.getId());
+                    return null;
                 }
             case SimaticBindingConstants.CHANNEL_STRING:
                 matcher = stringAddressPattern.matcher(address);
