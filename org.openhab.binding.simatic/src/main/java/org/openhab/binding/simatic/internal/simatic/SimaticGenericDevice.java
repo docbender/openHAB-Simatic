@@ -518,77 +518,82 @@ public class SimaticGenericDevice implements SimaticIDevice {
         // logger.debug("buffer={}", buffer.length);
         // logger.debug("position={}", position);
         // logger.debug("item len={}", item.getStateAddress().getDataLength());
+        try {
+            ByteBuffer bb = ByteBuffer.wrap(buffer, position, item.getStateAddress().getDataLength());
 
-        ByteBuffer bb = ByteBuffer.wrap(buffer, position, item.getStateAddress().getDataLength());
+            // no byte swap for array
+            // if (item.datatype == SimaticTypes.ARRAY) {
+            bb.order(ByteOrder.BIG_ENDIAN);
+            // } else {
+            // bb.order(ByteOrder.LITTLE_ENDIAN);
+            // }
 
-        // no byte swap for array
-        // if (item.datatype == SimaticTypes.ARRAY) {
-        bb.order(ByteOrder.BIG_ENDIAN);
-        // } else {
-        // bb.order(ByteOrder.LITTLE_ENDIAN);
-        // }
-
-        if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_STRING)) {
-            // check for '\0' char and resolve string length
-            int i;
-            for (i = position; i < item.getStateAddress().getDataLength(); i++) {
-                if (buffer[i] == 0) {
-                    break;
+            if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_STRING)) {
+                // check for '\0' char and resolve string length
+                int i;
+                for (i = position; i < item.getStateAddress().getDataLength(); i++) {
+                    if (buffer[i] == 0) {
+                        break;
+                    }
                 }
-            }
-            String str = new String(buffer, position, i, charset);
-            item.setState(new StringType(str));
+                String str = new String(buffer, position, i, charset);
+                item.setState(new StringType(str));
 
-        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_NUMBER)) {
-            if (item.getStateAddress().isFloat()) {
-                item.setState(new DecimalType(bb.getFloat()));
-            } else {
-                final int intValue;
-                if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
-                    intValue = (bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? 1 : 0;
-                } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BYTE) {
-                    intValue = bb.get();
-                } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.WORD) {
-                    intValue = bb.getShort();
-                } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.DWORD) {
-                    intValue = bb.getInt();
+            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_NUMBER)) {
+                if (item.getStateAddress().isFloat()) {
+                    item.setState(new DecimalType(bb.getFloat()));
                 } else {
-                    intValue = 0;
+                    final int intValue;
+                    if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
+                        intValue = (bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? 1 : 0;
+                    } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BYTE) {
+                        intValue = bb.get();
+                    } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.WORD) {
+                        intValue = bb.getShort();
+                    } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.DWORD) {
+                        intValue = bb.getInt();
+                    } else {
+                        intValue = 0;
+                    }
+
+                    item.setState(new DecimalType(intValue));
                 }
+            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_DIMMER)) {
+                item.setState(new PercentType(bb.get()));
+            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_CONTACT)) {
+                if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
+                    item.setState((bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0
+                            ? OpenClosedType.OPEN
+                            : OpenClosedType.CLOSED);
+                } else {
+                    item.setState((bb.get() != 0) ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
+                }
+            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_SWITCH)) {
+                if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
+                    item.setState(
+                            (bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? OnOffType.ON
+                                    : OnOffType.OFF);
+                } else {
+                    item.setState(bb.get() != 0 ? OnOffType.ON : OnOffType.OFF);
+                }
+            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_ROLLERSHUTTER)) {
+                item.setState(new PercentType(bb.get()));
+            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_COLOR)) {
+                byte b0 = bb.get();
+                byte b1 = bb.get();
+                byte b2 = bb.get();
+                byte b3 = bb.get();
 
-                item.setState(new DecimalType(intValue));
-            }
-        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_DIMMER)) {
-            item.setState(new PercentType(bb.get()));
-        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_CONTACT)) {
-            if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
-                item.setState(
-                        (bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? OpenClosedType.OPEN
-                                : OpenClosedType.CLOSED);
+                item.setState(HSBType.fromRGB(b0 & 0xFF, b1 & 0xFF, b2 & 0xFF));
             } else {
-                item.setState((bb.get() != 0) ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
+                item.setState(null);
+                logger.warn("{} - Incoming data channel {} - Unsupported channel type {}.", toString(), item.channelId,
+                        item.channelType.getId());
+                return;
             }
-        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_SWITCH)) {
-            if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
-                item.setState((bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? OnOffType.ON
-                        : OnOffType.OFF);
-            } else {
-                item.setState(bb.get() != 0 ? OnOffType.ON : OnOffType.OFF);
-            }
-        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_ROLLERSHUTTER)) {
-            item.setState(new PercentType(bb.get()));
-        } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_COLOR)) {
-            byte b0 = bb.get();
-            byte b1 = bb.get();
-            byte b2 = bb.get();
-            byte b3 = bb.get();
-
-            item.setState(HSBType.fromRGB(b0 & 0xFF, b1 & 0xFF, b2 & 0xFF));
-        } else {
-            item.setState(null);
-            logger.warn("{} - Incoming data channel {} - Unsupported channel type {}.", toString(), item.channelId,
-                    item.channelType.getId());
-            return;
+        } catch (Exception ex) {
+            logger.error("{} - Incoming data post error. Item:{}/state:{}.", toString(), item.channelId,
+                    item.getState(), ex);
         }
 
         if (logger.isTraceEnabled()) {

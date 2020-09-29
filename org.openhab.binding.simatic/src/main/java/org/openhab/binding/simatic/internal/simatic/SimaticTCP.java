@@ -319,7 +319,7 @@ public class SimaticTCP extends SimaticGenericDevice {
         // get data for all items in area
         for (SimaticChannel item : area.getItems()) {
             // send value into openHAB
-            this.postValue(item, buffer, item.getStateAddress().getByteOffset() - start);
+            postValue(item, buffer, item.getStateAddress().getByteOffset() - start);
         }
     }
 
