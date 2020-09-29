@@ -56,6 +56,8 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
     // bridge channels
     private @Nullable ChannelUID chVersion, chPduSize, chAreasCount, chAreas, chTagCount, chRequests, chBytes;
 
+    private int channelCount = 0;
+
     /**
      * Constructor
      *
@@ -217,8 +219,24 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
         // get cached values
         if (command instanceof RefreshType) {
-            logger.error("{} - command: RefreshType not implemented", thing.getLabel());
-            // updateState(channelUID, value);
+            if (channelUID.equals(chVersion)) {
+                updateState(channelUID, new StringType(SimaticBindingConstants.VERSION));
+            } else if (channelUID.equals(chPduSize)) {
+                if (connection != null && connection.isConnected()) {
+                    updateState(chPduSize, new DecimalType(connection.getPduSize()));
+                }
+            } else if (channelUID.equals(chAreas)) {
+                if (connection != null && connection.isConnected()) {
+                    updateState(chAreas, new StringType(
+                            (connection.getReadAreas().size() == 0) ? "none" : connection.getReadAreas().toString()));
+                }
+            } else if (channelUID.equals(chAreasCount)) {
+                if (connection != null && connection.isConnected()) {
+                    updateState(chAreasCount, new DecimalType(connection.getReadAreas().size()));
+                }
+            } else if (channelUID.equals(chTagCount)) {
+                updateState(channelUID, new DecimalType(channelCount));
+            }
         }
     }
 
@@ -231,7 +249,6 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
      * Update bridge configuration by all things channels
      */
     public void updateConfig() {
-        int channelCount = 0;
         int stateChannelCount = 0;
 
         for (Thing th : getThing().getThings()) {
