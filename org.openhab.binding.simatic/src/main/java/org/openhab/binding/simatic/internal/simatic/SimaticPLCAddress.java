@@ -55,6 +55,11 @@ public class SimaticPLCAddress implements Comparable {
         floatNumber = isFloat;
 
         dataLength = prepareAddress(nonDbArea);
+
+        if (floatNumber && dataType != SimaticPLCDataTypes.DWORD) {
+            floatNumber = false;
+            logger.warn("Address {}{} of type {} cannot be represented as float.", nonDbArea, bytePosition, dataType);
+        }
     }
 
     /**
@@ -115,6 +120,12 @@ public class SimaticPLCAddress implements Comparable {
         floatNumber = isFloat;
 
         dataLength = prepareAddress(dbArea);
+
+        if (floatNumber && dataType != SimaticPLCDataTypes.DWORD) {
+            floatNumber = false;
+            logger.warn("Address DB{}.DB{}{} of type {} cannot be represented as float.", dbNumber, dbArea,
+                    bytePosition, dataType);
+        }
     }
 
     /**

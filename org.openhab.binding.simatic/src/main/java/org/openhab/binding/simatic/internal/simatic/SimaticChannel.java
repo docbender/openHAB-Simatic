@@ -42,8 +42,8 @@ public class SimaticChannel {
     private SimaticGenericHandler thing;
     private long valueUpdateTime = 0;
 
-    final private static Pattern numberAddressPattern = Pattern
-            .compile("^(([IQAEM][BWD])(\\d+)(F?))$|^(DB(\\d+)\\.DB([BWD])(\\d+)(F?))$");
+    final private static Pattern numberAddressPattern = Pattern.compile(
+            "^(([IQAEM][BW])(\\d+))$|^(([IQAEM]D)(\\d+)(F?))$|^(DB(\\d+)\\.DB([BW])(\\d+))$|^(DB(\\d+)\\.DB(D)(\\d+)(F?))$");
     final private static Pattern stringAddressPattern = Pattern
             .compile("^(([IQAEM]B)(\\d+)\\[(\\d+)\\])$|^(DB(\\d+)\\.DBB(\\d+)\\[(\\d+)\\])$");
     final private static Pattern switchAddressPattern = Pattern.compile(
