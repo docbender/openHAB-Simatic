@@ -141,7 +141,7 @@ public class SimaticPLCAddress implements Comparable {
         dBNum = dbNumber;
         floatNumber = false;
 
-        dataLength = prepareAddress("B");
+        dataLength = prepareAddress("X");
     }
 
     /**
