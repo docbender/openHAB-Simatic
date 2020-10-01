@@ -57,7 +57,8 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                                 channel.channelType.getId()));
             }
             DecimalType cmd = (DecimalType) command;
-            if (address.getSimaticDataType() == SimaticPLCDataTypes.BYTE) {
+            if (address.getSimaticDataType() == SimaticPLCDataTypes.BYTE
+                    || address.getSimaticDataType() == SimaticPLCDataTypes.BIT) {
                 data = new byte[] { cmd.byteValue() };
             } else if (address.getSimaticDataType() == SimaticPLCDataTypes.WORD) {
                 data = new byte[] { (byte) ((cmd.intValue() >> 8) & 0xFF), (byte) (cmd.intValue() & 0xFF) };

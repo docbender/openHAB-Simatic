@@ -25,7 +25,7 @@ import org.openhab.core.thing.type.ChannelTypeUID;
 @NonNullByDefault
 public class SimaticBindingConstants {
 
-    public static final String VERSION = "3.0.0-beta.3";
+    public static final String VERSION = "3.0.0-beta.4";
 
     private static final String BINDING_ID = "simatic";
 

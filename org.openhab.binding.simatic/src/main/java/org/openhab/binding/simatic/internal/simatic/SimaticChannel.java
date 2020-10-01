@@ -43,7 +43,7 @@ public class SimaticChannel {
     private long valueUpdateTime = 0;
 
     final private static Pattern numberAddressPattern = Pattern.compile(
-            "^(([IQAEM][BW])(\\d+))$|^(([IQAEM]D)(\\d+)(F?))$|^(DB(\\d+)\\.DB([BW])(\\d+))$|^(DB(\\d+)\\.DB(D)(\\d+)(F?))$");
+            "^(([IQAEM][BW])(\\d+))$|^(([IQAEM]D)(\\d+)(F?))$|^(DB(\\d+)\\.DB([BW])(\\d+))$|^(DB(\\d+)\\.DB(D)(\\d+)(F?))$|^(([IQAEM])(\\d+)\\.([0-7]))$|^(DB(\\d+)\\.DBX(\\d+)\\.([0-7]))$");
     final private static Pattern stringAddressPattern = Pattern
             .compile("^(([IQAEM]B)(\\d+)\\[(\\d+)\\])$|^(DB(\\d+)\\.DBB(\\d+)\\[(\\d+)\\])$");
     final private static Pattern switchAddressPattern = Pattern.compile(
@@ -110,17 +110,29 @@ public class SimaticChannel {
                     return null;
                 }
                 if (matcher.group(1) != null) {
+                    // memory area - byte, word
                     return new SimaticPLCAddress(matcher.group(2), Integer.parseInt(matcher.group(3)), false);
                 } else if (matcher.group(4) != null) {
+                    // memory area - dword
                     return new SimaticPLCAddress(matcher.group(5), Integer.parseInt(matcher.group(6)),
                             matcher.group(7) != null && !matcher.group(7).isEmpty());
                 } else if (matcher.group(8) != null) {
+                    // datablock area - byte, word
                     return new SimaticPLCAddress(Integer.parseInt(matcher.group(9)), matcher.group(10),
                             Integer.parseInt(matcher.group(11)), false);
                 } else if (matcher.group(12) != null) {
+                    // datablock area - dword
                     return new SimaticPLCAddress(Integer.parseInt(matcher.group(13)), matcher.group(14),
                             Integer.parseInt(matcher.group(15)),
                             matcher.group(16) != null && !matcher.group(16).isEmpty());
+                } else if (matcher.group(17) != null) {
+                    // memory area - bit
+                    return new SimaticPLCAddress(matcher.group(18), Integer.parseInt(matcher.group(19)),
+                            Integer.parseInt(matcher.group(20)));
+                } else if (matcher.group(21) != null) {
+                    // datablock area - bit
+                    return new SimaticPLCAddress(Integer.parseInt(matcher.group(22)),
+                            Integer.parseInt(matcher.group(23)), Integer.parseInt(matcher.group(24)));
                 } else {
                     error = String.format(
                             "Unsupported address '%s' for typeID=%s. Supported types B,W,D. Address example IB10, MW100, DB1.DBD0, DB1.DBD0F",
