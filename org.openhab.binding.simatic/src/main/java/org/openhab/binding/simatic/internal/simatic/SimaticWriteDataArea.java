@@ -221,6 +221,7 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
      * @param blue
      * @return
      */
+    @SuppressWarnings("unused")
     private static byte[] calcWhite(long red, long green, long blue) {
 
         byte[] result = new byte[4];

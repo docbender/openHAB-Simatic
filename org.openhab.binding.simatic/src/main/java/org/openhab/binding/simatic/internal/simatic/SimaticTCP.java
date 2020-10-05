@@ -278,6 +278,7 @@ public class SimaticTCP extends SimaticGenericDevice {
      * @throws SimaticReadException
      *
      */
+    @SuppressWarnings("null")
     @Override
     public void readDataArea(SimaticReadDataArea area) throws SimaticReadException {
         byte[] buffer = new byte[area.getAddressSpaceLength()];

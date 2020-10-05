@@ -96,7 +96,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
         UNKNOWN_MESSAGE_REWIND
     }
 
-    private @Nullable ScheduledFuture periodicJob = null;
+    private @Nullable ScheduledFuture<?> periodicJob = null;
 
     /**
      * Constructor
@@ -513,6 +513,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * @param buffer
      * @param position
      */
+    @SuppressWarnings("null")
     public void postValue(SimaticChannel item, byte[] buffer, int position) {
         // logger.debug("item={}", item.toString());
         // logger.debug("buffer={}", buffer.length);
@@ -582,7 +583,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
                 byte b0 = bb.get();
                 byte b1 = bb.get();
                 byte b2 = bb.get();
-                byte b3 = bb.get();
+                // byte b3 = bb.get();
 
                 item.setState(HSBType.fromRGB(b0 & 0xFF, b1 & 0xFF, b2 & 0xFF));
             } else {

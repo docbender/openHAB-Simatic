@@ -80,6 +80,7 @@ public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
         return startAddress.getByteOffset() + areaLength;
     }
 
+    @SuppressWarnings("null")
     public void addItem(SimaticChannel item) throws Exception {
         if (item.getStateAddress().getArea() != this.getArea()) {
             throw new Exception("Adding item error. Mismatch area.");

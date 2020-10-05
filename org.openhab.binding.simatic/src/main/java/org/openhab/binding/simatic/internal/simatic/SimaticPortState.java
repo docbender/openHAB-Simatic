@@ -10,8 +10,6 @@ package org.openhab.binding.simatic.internal.simatic;
 
 import java.util.Calendar;
 
-import org.openhab.core.events.EventPublisher;
-
 /**
  * Status of communication
  *
@@ -36,13 +34,6 @@ public class SimaticPortState {
     private PortStates prevState = PortStates.UNKNOWN;
     /** Connection state change time **/
     private Calendar changedSince;
-    private EventPublisher eventPublisher;
-    /** Item name defined for "State" tag in items file configuration **/
-    private String itemState = null;
-    /** Item name defined for "PreviousState" tag in items file configuration **/
-    private String itemPreviousState = null;
-    /** Item name defined for "StateChangeTime" tag in items file configuration **/
-    private String itemStateChangeTime = null;
 
     /**
      * Return port status
@@ -58,7 +49,7 @@ public class SimaticPortState {
      *
      * @return
      */
-    public PortStates getPreviusState() {
+    public PortStates getPreviousState() {
         return prevState;
     }
 
@@ -83,48 +74,6 @@ public class SimaticPortState {
             this.prevState = this.state;
             this.state = state;
             this.changedSince = Calendar.getInstance();
-
-            // FIXME
-            /*
-             * // update event bus
-             * if (itemState != null) {
-             * eventPublisher.postUpdate(itemState, new DecimalType(this.state.ordinal()));
-             * }
-             * if (itemPreviousState != null) {
-             * eventPublisher.postUpdate(itemPreviousState, new DecimalType(this.prevState.ordinal()));
-             * }
-             * if (itemStateChangeTime != null) {
-             * eventPublisher.postUpdate(itemStateChangeTime, new DateTimeType(this.changedSince));
-             * }
-             */
         }
     }
-
-    /**
-     * Set binding data for internal use and port item state init
-     *
-     * @param eventPublisher
-     * @param itemsInfoConfig
-     * @param deviceName
-     */
-    /*
-     * public void setBindingData(EventPublisher eventPublisher, Map<String, SimaticInfoBindingConfig> itemsInfoConfig,
-     * String deviceName) {
-     * this.eventPublisher = eventPublisher;
-     *
-     * for (Map.Entry<String, SimaticInfoBindingConfig> item : itemsInfoConfig.entrySet()) {
-     *
-     * if (item.getValue().device.equals(deviceName)) {
-     * // find right info type
-     * if (item.getValue().infoType == InfoType.STATE) {
-     * itemState = item.getValue().item.getName();
-     * } else if (item.getValue().infoType == InfoType.PREVIOUS_STATE) {
-     * itemPreviousState = item.getValue().item.getName();
-     * } else if (item.getValue().infoType == InfoType.STATE_CHANGE_TIME) {
-     * itemStateChangeTime = item.getValue().item.getName();
-     * }
-     * }
-     * }
-     * }
-     */
 }

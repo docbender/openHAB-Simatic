@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
  * @author Vita Tucek
  * @since 1.9.0
  */
-public class SimaticPLCAddress implements Comparable {
+public class SimaticPLCAddress implements Comparable<SimaticPLCAddress> {
     private static final Logger logger = LoggerFactory.getLogger(SimaticPLCAddress.class);
 
     private Integer addressByte;
@@ -288,12 +288,7 @@ public class SimaticPLCAddress implements Comparable {
     }
 
     @Override
-    public int compareTo(Object arg0) {
-        if (!(arg0 instanceof SimaticPLCAddress)) {
-            return -1;
-        }
-
-        SimaticPLCAddress obj = (SimaticPLCAddress) arg0;
+    public int compareTo(SimaticPLCAddress obj) {
         int areaResult = this.area.compareTo(obj.area);
         int dbResult = this.dBNum.compareTo(obj.dBNum);
         int addrResult = this.addressByte.compareTo(obj.addressByte);

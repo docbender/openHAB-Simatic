@@ -213,6 +213,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         logger.debug("{} - bridge has been stopped", getThing().getLabel());
     }
 
+    @SuppressWarnings("null")
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         logger.debug("{} - Command {} for channel {}", thing.getLabel(), command, channelUID);

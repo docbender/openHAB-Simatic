@@ -70,7 +70,7 @@
 		<supported-bridge-type-refs>
 			<bridge-type-ref id="bridge"/>
 		</supported-bridge-type-refs>
-		<label>Simatic Binding Thing</label>
+		<label>Simatic Thing</label>
 		<description>Generic thing for Simatic Binding. This thing requires bridge to be defined.</description>
 	</thing-type>
 
@@ -123,7 +123,7 @@
 	<channel-type id="chNumber">
 		<item-type>Number</item-type>
 		<label>Number Value</label>
-		<description>Supported Simatic data types are Byte, Word, Dword, Float</description>
+		<description>Supported Simatic data types are Bit, Byte, Word, Dword, Float</description>
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>
@@ -213,8 +213,8 @@
 	<channel-type id="chRollershutter">
 		<item-type>Rollershutter</item-type>
 		<label>Rollershutter</label>
-		<description>Simatic data type is Byte. Status byte for position (0-100), command byte for StopMove/UpDown -
-			1-Move,2-Stop,4-Up,8-Down</description>
+		<description>Simatic data type is Byte. Status byte for position (0-100%), command byte for Stop/Up/Down -
+			2-Stop,4-Up,8-Down</description>
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>

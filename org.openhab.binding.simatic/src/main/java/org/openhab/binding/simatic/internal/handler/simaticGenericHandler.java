@@ -119,6 +119,7 @@ public class SimaticGenericHandler extends BaseThingHandler {
      *
      * @param bridgeStatusInfo Current bridge status
      */
+    @SuppressWarnings("null")
     @Override
     public void bridgeStatusChanged(ThingStatusInfo bridgeStatusInfo) {
         if (bridgeStatusInfo.getStatus() == ThingStatus.OFFLINE) {
@@ -145,6 +146,7 @@ public class SimaticGenericHandler extends BaseThingHandler {
         updateStatus(ThingStatus.ONLINE);
     }
 
+    @SuppressWarnings({ "null", "unused" })
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         logger.debug("{} - Command {}({}) for channel {}", thing.getLabel(), command, command.getClass(), channelUID);
@@ -200,7 +202,7 @@ public class SimaticGenericHandler extends BaseThingHandler {
         errorSetTime = System.currentTimeMillis();
         var st = getThing().getStatusInfo();
         if (st.getStatus() == ThingStatus.OFFLINE && st.getStatusDetail() == ThingStatusDetail.COMMUNICATION_ERROR
-                && st.getDescription() != null && st.getDescription().equals(message)) {
+                && st.getDescription() != null && message.equals(st.getDescription())) {
             return;
         }
 

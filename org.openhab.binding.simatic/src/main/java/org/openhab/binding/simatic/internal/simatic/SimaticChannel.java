@@ -21,25 +21,31 @@ import org.openhab.binding.simatic.internal.handler.SimaticGenericHandler;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.type.ChannelTypeUID;
 import org.openhab.core.types.State;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author VitaTucek - Initial contribution
  *
  */
 public class SimaticChannel {
-    private static final Logger logger = LoggerFactory.getLogger(SimaticChannel.class);
-
+    /** Channel ID */
     public ChannelUID channelId;
+    /** ChannelType ID */
     public ChannelTypeUID channelType;
+    /** State string address */
     public String stateAddress;
+    /** Command string address */
     public String commandAddress;
+    /** Stored state value */
     private State value;
+    /** Channel configuration error */
     private String error;
+    /** State Simatic address */
     private SimaticPLCAddress stateAddressPlc;
+    /** Command Simatic address */
     private SimaticPLCAddress commandAddressPlc;
+    /** Channel thing */
     private SimaticGenericHandler thing;
+    /** Last value update */
     private long valueUpdateTime = 0;
 
     final private static Pattern numberAddressPattern = Pattern.compile(
@@ -61,6 +67,12 @@ public class SimaticChannel {
         return String.format("ChID=%s,StateAddress=%s,CmdAddress=%s", channelId.getId(), stateAddress, commandAddress);
     }
 
+    /**
+     * Initialize channel from thing configuration
+     *
+     * @param handler Thing handler
+     * @return True if initialization is OK. When initialization not succeed, reason can be obtaion by getError()
+     */
     public boolean init(SimaticGenericHandler handler) {
         if (handler == null) {
             error = "ThingHandler is null";
@@ -93,11 +105,20 @@ public class SimaticChannel {
         return true;
     }
 
+    /**
+     * Clear instance
+     */
     public void clear() {
         thing = null;
         value = null;
     }
 
+    /**
+     * Check string address obtained from configuration
+     *
+     * @param address Item address in Simatic syntax
+     * @return
+     */
     public @Nullable SimaticPLCAddress checkAddress(String address) {
         final Matcher matcher;
         switch (channelType.getId()) {
@@ -237,40 +258,77 @@ public class SimaticChannel {
                     return new SimaticPLCAddress(matcher.group(2), Integer.parseInt(matcher.group(3)));
                 }
             default:
+                error = String.format("Unsupported channel type for address %s. TypeID=%s", address,
+                        channelType.getId());
                 return null;
         }
     }
 
+    /**
+     * Get error if init() failed
+     *
+     * @return
+     */
     public @Nullable String getError() {
         return error;
     }
 
+    /**
+     * Get address for channel state
+     *
+     * @return
+     */
     public @Nullable SimaticPLCAddress getStateAddress() {
         return stateAddressPlc;
     }
 
+    /**
+     * Get address for command
+     *
+     * @return
+     */
     public @Nullable SimaticPLCAddress getCommandAddress() {
         return commandAddressPlc;
     }
 
+    /**
+     * Set last channel state
+     *
+     * @param state
+     */
     public void setState(State state) {
         value = state;
         if (thing == null) {
             return;
         }
         thing.updateState(channelId, state);
-        valueUpdateTime = System.currentTimeMillis();
+        setValueUpdateTime(System.currentTimeMillis());
         clearError();
     }
 
+    /**
+     * Get last channel state
+     *
+     * @return
+     */
     public @Nullable State getState() {
         return value;
     }
 
+    /**
+     * Get channel thing
+     *
+     * @return
+     */
     public @Nullable SimaticGenericHandler getThing() {
         return thing;
     }
 
+    /**
+     * Set configuration error message
+     *
+     * @param message
+     */
     public void setError(String message) {
         if (thing == null) {
             return;
@@ -278,11 +336,32 @@ public class SimaticChannel {
         thing.setError(message);
     }
 
+    /**
+     * Clear error in parent
+     */
     private void clearError() {
         if (thing == null) {
             return;
         }
 
         thing.clearError();
+    }
+
+    /**
+     * Get last value time
+     *
+     * @return
+     */
+    public long getValueUpdateTime() {
+        return valueUpdateTime;
+    }
+
+    /**
+     * Set last value time
+     *
+     * @param valueUpdateTime
+     */
+    public void setValueUpdateTime(long valueUpdateTime) {
+        this.valueUpdateTime = valueUpdateTime;
     }
 }
