@@ -186,9 +186,8 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
         // background initialization
         scheduler.execute(() -> {
-            while (!connection.open()) {
+            if (!connection.open()) {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
-                connection.reconnectWithDelaying();
             }
         });
     }

@@ -142,10 +142,11 @@ public class SimaticTCP extends SimaticGenericDevice {
             tryReconnect.set(true);
             return false;
         } finally {
-
+            if (!isConnected()) {
+                reconnectWithDelaying();
+            }
         }
 
-        execute();
         return true;
     }
 
@@ -281,6 +282,7 @@ public class SimaticTCP extends SimaticGenericDevice {
     @SuppressWarnings("null")
     @Override
     public void readDataArea(SimaticReadDataArea area) throws SimaticReadException {
+        long startTime = System.currentTimeMillis();
         byte[] buffer = new byte[area.getAddressSpaceLength()];
 
         int result;
@@ -316,7 +318,7 @@ public class SimaticTCP extends SimaticGenericDevice {
         }
 
         int start = area.getStartAddress();
-
+        long response = System.currentTimeMillis() - startTime;
         // get data for all items in area
         for (SimaticChannel item : area.getItems()) {
             // send value into openHAB
