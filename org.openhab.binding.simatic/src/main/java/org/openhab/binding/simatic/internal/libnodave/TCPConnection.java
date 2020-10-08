@@ -46,7 +46,7 @@ public class TCPConnection extends S7Connection {
 
     /**
      * Read ISOonTCP packet. Data from next segment
-     * 
+     *
      * @param destination
      * @return
      * @throws IOException
@@ -77,15 +77,16 @@ public class TCPConnection extends S7Connection {
 
         res += iface.read(msgIn, destination, len - 7);
 
-        if (!lastSegment)
+        if (!lastSegment) {
             res += readISOPacketNext(destination + len - 7);
+        }
 
         return res;
     }
 
     /**
      * Read ISOonTCP packet
-     * 
+     *
      * @return
      * @throws IOException
      */
@@ -113,8 +114,9 @@ public class TCPConnection extends S7Connection {
             System.out.println("   PDU nr=" + (msgIn[6] & 0x7F));
             System.out.println("   Last segment=" + lastSegment);
         }
-        if (!lastSegment)
+        if (!lastSegment) {
             res += readISOPacketNext(len);
+        }
         return res;
     }
 

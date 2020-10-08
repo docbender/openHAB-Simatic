@@ -29,7 +29,7 @@ import java.io.OutputStream;
 public class PLCinterface {
     int localMPI; // the adapter's MPI address
     String name;
-    int timeout; // Timeout in milliseconds used in transort.
+    int timeout = 1000; // Timeout in milliseconds used in transort.
     int protocol; // The kind of transport used on this interface.
 
     OutputStream out;
@@ -49,15 +49,6 @@ public class PLCinterface {
         this.name = name;
         this.localMPI = localMPI;
         this.protocol = protocol;
-        timeout = 5000;
-        switch (protocol) {
-            case Nodave.PROTOCOL_ISOTCP:
-                timeout = 50000;
-                break;
-            case Nodave.PROTOCOL_ISOTCP243:
-                timeout = 50000;
-                break;
-        }
     }
 
     public void write(byte[] b, int start, int len) throws IOException {
@@ -72,55 +63,6 @@ public class PLCinterface {
             throw e;
         }
     }
-    /*
-     * public int read(byte[] b, int start, int len) {
-     * int res;
-     * if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0)
-     * System.out.println("Interface.read");
-     * try {
-     * res = in.read(b, start, len);
-     * System.out.println(res+" bytes read");
-     * return res;
-     * }
-     * catch (IOException e) {
-     * System.out.println(e);
-     * return 0;
-     * }
-     * }
-     */
-    /*
-     *
-     * public int read(byte[] b, int start, int len) {
-     * int res;
-     * if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0)
-     * System.out.println("Interface.read");
-     * try {
-     * int retry = 0;
-     * while ((in.available() <= 0) && (retry < 20)) {
-     * try {
-     * Thread.sleep(timeout / 20);
-     * retry++;
-     * if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0)
-     * System.out.println("Interface.read delayed");
-     * } catch (InterruptedException e) {
-     * System.out.println(e);
-     * }
-     * }
-     *
-     * if (in.available() > 0) {
-     * // if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0)
-     * // System.out.println("can read");
-     * res = in.read(b, start, len);
-     * // System.out.println(res+" bytes read");
-     * return res;
-     * }
-     * return 0;
-     * } catch (IOException e) {
-     * System.out.println(e);
-     * return 0;
-     * }
-     * }
-     */
 
     public int read(byte[] b, int start, int len) throws IOException {
         int res;
@@ -129,10 +71,10 @@ public class PLCinterface {
         }
         try {
             int retry = 0;
-            while ((in.available() <= 0) && (retry < 10)) {
+            while ((in.available() <= 0) && (retry < timeout / 5)) {
                 try {
                     if (retry > 0) {
-                        Thread.sleep(timeout / 200);
+                        Thread.sleep(5);
                     }
                     retry++;
                     if ((Nodave.Debug & Nodave.DEBUG_IFACE) != 0) {

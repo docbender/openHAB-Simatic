@@ -190,7 +190,7 @@ public abstract class S7Connection {
 
     /**
      * Read bytes from specified area and store it into prepared buffer
-     * 
+     *
      * @param area Area type
      * @param DBnum DB number
      * @param start Start address
@@ -206,7 +206,6 @@ public abstract class S7Connection {
         PDU p1 = new PDU(msgOut, PDUstartOut);
         p1.initReadRequest();
         p1.addVarToReadRequest(area, DBnum, start, len);
-
         res = exchange(p1);
         if (res != Nodave.RESULT_OK) {
             semaphore.leave();
