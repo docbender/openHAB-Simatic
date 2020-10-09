@@ -138,7 +138,7 @@
 	<channel-type id="chColor">
 		<item-type>Color</item-type>
 		<label>Color Value</label>
-		<description>In Simatic represented as Dword. Each byte is single color part.</description>
+		<description>In Simatic represented RGB as Dword. Each Byte is single color part.</description>
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>
@@ -213,7 +213,7 @@
 	<channel-type id="chRollershutter">
 		<item-type>Rollershutter</item-type>
 		<label>Rollershutter</label>
-		<description>Simatic data type is Byte. Status byte for position (0-100%), command byte for Stop/Up/Down -
+		<description>Simatic data type is Byte. Status Byte for position (0-100%), command Byte for Stop/Up/Down -
 			2-Stop,4-Up,8-Down</description>
 		<config-description>
 			<parameter name="stateAddress" type="text">

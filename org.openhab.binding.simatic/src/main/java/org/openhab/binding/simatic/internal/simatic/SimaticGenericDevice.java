@@ -231,8 +231,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
         return open();
     }
 
-    // TODO: speed test - measure read transaction and find bottleneck
-
     /**
      * Reconnect device
      */
@@ -428,7 +426,9 @@ public class SimaticGenericDevice implements SimaticIDevice {
                     // read data
                     readDataArea(area);
                 } catch (SimaticReadException e) {
-                    logger.error("{} - ", toString(), e);
+                    if (!disposed && isConnected()) {
+                        logger.error("{} - ", toString(), e);
+                    }
                     if (e.fatal) {
                         return;
                     } else {
