@@ -278,8 +278,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
     /**
      * Send command into device channel
      *
-     * @see org.openhab.binding.SimaticIDevice.internal.SimaticIDevice#sendData(java.lang.String,
-     *      org.openhab.core.types.Command)
      */
     @Override
     public void sendData(SimaticChannel item, Command command) {
@@ -287,7 +285,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
             var area = SimaticWriteDataArea.create(command, item, pduSize, charset);
             sendData(area);
         } catch (Exception ex) {
-            logger.error("{} - ", toString(), ex);
+            logger.error("{} - ChannelUID={}. {}.", toString(), item.channelId, ex.getMessage(), ex);
         }
     }
 

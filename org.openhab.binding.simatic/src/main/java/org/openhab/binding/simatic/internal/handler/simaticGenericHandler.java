@@ -175,6 +175,12 @@ public class SimaticGenericHandler extends BaseThingHandler {
         }
         SimaticChannel channel = channels.get(channelUID);
 
+        if (channel.getCommandAddress() == null) {
+            logger.warn("{} - command not completed. Channel does not have a command address specified. ChannelUID={}",
+                    thing.getLabel(), channelUID);
+            return;
+        }
+
         connection.sendData(channel, command);
     }
 
