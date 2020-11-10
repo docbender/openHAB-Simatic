@@ -47,6 +47,7 @@ public class SimaticChannel {
     private SimaticGenericHandler thing;
     /** Last value update */
     private long valueUpdateTime = 0;
+    private boolean missingCommandReported = false;
 
     final private static Pattern numberAddressPattern = Pattern.compile(
             "^(([IQAEM][BW])(\\d+))$|^(([IQAEM]D)(\\d+)(F?))$|^(DB(\\d+)\\.DB([BW])(\\d+))$|^(DB(\\d+)\\.DB(D)(\\d+)(F?))$|^(([IQAEM])(\\d+)\\.([0-7]))$|^(DB(\\d+)\\.DBX(\\d+)\\.([0-7]))$");
@@ -74,6 +75,7 @@ public class SimaticChannel {
      * @return True if initialization is OK. When initialization not succeed, reason can be obtaion by getError()
      */
     public boolean init(SimaticGenericHandler handler) {
+        missingCommandReported = false;
         if (handler == null) {
             error = "ThingHandler is null";
             return false;
@@ -363,5 +365,13 @@ public class SimaticChannel {
      */
     public void setValueUpdateTime(long valueUpdateTime) {
         this.valueUpdateTime = valueUpdateTime;
+    }
+
+    public boolean isMissingCommandReported() {
+        if (!missingCommandReported) {
+            missingCommandReported = true;
+            return false;
+        }
+        return true;
     }
 }
