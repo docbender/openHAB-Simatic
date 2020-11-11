@@ -195,7 +195,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
     @Override
     protected void updateState(@Nullable ChannelUID channel, State state) {
         if (channel == null) {
-            logger.error("{} - updateState(...) channelID is null for state={}", getThing().getLabel(), state);
+            logger.debug("{} - updateState(...) channelID is null for state={}", getThing().getLabel(), state);
             return;
         }
         // logger.debug("{} - update channelID={}, state={}", getThing().getLabel(), channel, state);
