@@ -60,8 +60,10 @@ public class SimaticChannel {
     final private static Pattern dimmerAddressPattern = Pattern
             .compile("^(([IQAEM]B)(\\d+))$|^(DB(\\d+)\\.DBB(\\d+))$");
     final private static Pattern colorAddressPattern = Pattern.compile("^(([IQAEM]D)(\\d+))$|^(DB(\\d+)\\.DBD(\\d+))$");
-    final private static Pattern rollershutterAddressPattern = Pattern
-            .compile("^(([IQAEM]B)(\\d+))$|^(DB(\\d+)\\.DBB(\\d+))$");
+    final private static Pattern rollershutterStateAddressPattern = Pattern
+            .compile("^(([IQAEM]B)(\\d+))$|^(DB(\\d+)\\.DB(B)(\\d+))$");
+    final private static Pattern rollershutterCommandAddressPattern = Pattern
+            .compile("^(([IQAEM][BW])(\\d+))$|^(DB(\\d+)\\.DB([BW])(\\d+))$");
 
     @Override
     public String toString() {
@@ -100,7 +102,7 @@ public class SimaticChannel {
             return false;
         }
 
-        if (commandAddress != null && (commandAddressPlc = checkAddress(commandAddress)) == null) {
+        if (commandAddress != null && (commandAddressPlc = checkAddress(commandAddress, true)) == null) {
             return false;
         }
 
@@ -122,6 +124,17 @@ public class SimaticChannel {
      * @return
      */
     public @Nullable SimaticPLCAddress checkAddress(String address) {
+        return checkAddress(address, false);
+    }
+
+    /**
+     * Check string address obtained from configuration
+     *
+     * @param address Item address in Simatic syntax
+     * @param useCommandPattern Use command pattern if exist
+     * @return
+     */
+    public @Nullable SimaticPLCAddress checkAddress(String address, boolean useCommandPattern) {
         final Matcher matcher;
         switch (channelType.getId()) {
             case SimaticBindingConstants.CHANNEL_NUMBER:
@@ -246,16 +259,26 @@ public class SimaticChannel {
                     return new SimaticPLCAddress(matcher.group(2), Integer.parseInt(matcher.group(3)));
                 }
             case SimaticBindingConstants.CHANNEL_ROLLERSHUTTER:
-                matcher = rollershutterAddressPattern.matcher(address);
+                if (useCommandPattern) {
+                    matcher = rollershutterCommandAddressPattern.matcher(address);
+                } else {
+                    matcher = rollershutterStateAddressPattern.matcher(address);
+                }
                 if (!matcher.matches()) {
-                    error = String.format(
-                            "Unsupported address '%s' for typeID=%s. Supported types BYTE. Address example MB100",
-                            address, channelType.getId());
+                    if (useCommandPattern) {
+                        error = String.format(
+                                "Unsupported address '%s' for typeID=%s. Supported types BYTE, WORD. Address example MB100",
+                                address, channelType.getId());
+                    } else {
+                        error = String.format(
+                                "Unsupported address '%s' for typeID=%s. Supported types BYTE. Address example MB100",
+                                address, channelType.getId());
+                    }
                     return null;
                 }
                 if (matcher.group(1) == null) {
-                    return new SimaticPLCAddress(Integer.parseInt(matcher.group(5)), "B",
-                            Integer.parseInt(matcher.group(6)));
+                    return new SimaticPLCAddress(Integer.parseInt(matcher.group(5)), matcher.group(6),
+                            Integer.parseInt(matcher.group(7)));
                 } else {
                     return new SimaticPLCAddress(matcher.group(2), Integer.parseInt(matcher.group(3)));
                 }
