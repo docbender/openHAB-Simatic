@@ -13,7 +13,6 @@ import java.nio.charset.Charset;
 
 import org.openhab.binding.simatic.internal.SimaticBindingConstants;
 import org.openhab.binding.simatic.internal.libnodave.Nodave;
-import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.library.types.HSBType;
 import org.openhab.core.library.types.OnOffType;
 import org.openhab.core.library.types.OpenClosedType;
@@ -51,12 +50,13 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
         byte[] data = null;
 
         if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_NUMBER)) {
-            if (!(command instanceof DecimalType)) {
-                throw new Exception(
-                        String.format("Cannot create WriteDataArea. Command for ChannelType=%s must be DecimalType",
-                                channel.channelType.getId()));
+            if (!(command instanceof Number)) {
+                throw new Exception(String.format(
+                        "Cannot create WriteDataArea. Command for ChannelType=%s must be DecimalType. It is %s (%s)",
+                        channel.channelType.getId(), command.getClass().getSimpleName(),
+                        command.getClass().getGenericSuperclass().getTypeName()));
             }
-            DecimalType cmd = (DecimalType) command;
+            Number cmd = (Number) command;
             if (address.getSimaticDataType() == SimaticPLCDataTypes.BYTE
                     || address.getSimaticDataType() == SimaticPLCDataTypes.BIT) {
                 data = new byte[] { cmd.byteValue() };
@@ -164,9 +164,25 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
             }
         } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_ROLLERSHUTTER)) {
             if (command instanceof StopMoveType) {
-                data = new byte[] { (byte) (((StopMoveType) command).equals(StopMoveType.MOVE) ? 0x1 : 0x2) };
+                if (address.getSimaticDataType() == SimaticPLCDataTypes.WORD) {
+                    data = new byte[] { (byte) (((StopMoveType) command).equals(StopMoveType.MOVE) ? 0x1 : 0x2), 0 };
+                } else {
+                    data = new byte[] { (byte) (((StopMoveType) command).equals(StopMoveType.MOVE) ? 0x1 : 0x2) };
+                }
             } else if (command instanceof UpDownType) {
-                data = new byte[] { (byte) (((UpDownType) command).equals(UpDownType.UP) ? 0x4 : 0x8) };
+                if (address.getSimaticDataType() == SimaticPLCDataTypes.WORD) {
+                    data = new byte[] { (byte) (((UpDownType) command).equals(UpDownType.UP) ? 0x4 : 0x8), 0 };
+                } else {
+                    data = new byte[] { (byte) (((UpDownType) command).equals(UpDownType.UP) ? 0x4 : 0x8) };
+                }
+            } else if (command instanceof PercentType) {
+                if (address.getSimaticDataType() == SimaticPLCDataTypes.WORD) {
+                    data = new byte[] { 0x1, ((PercentType) command).byteValue() };
+                } else {
+                    throw new Exception(String.format(
+                            "Cannot create WriteDataArea. Command %s ChannelType=%s need for position set command address length of WORD.",
+                            command.getClass(), channel.channelType.getId()));
+                }
             } else {
                 throw new Exception(
                         String.format("Cannot create WriteDataArea. Command %s for ChannelType=%s not implemented",
