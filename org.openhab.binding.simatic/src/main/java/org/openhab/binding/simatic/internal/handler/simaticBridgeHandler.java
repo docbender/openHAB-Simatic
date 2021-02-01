@@ -25,7 +25,9 @@ import org.openhab.binding.simatic.internal.simatic.SimaticGenericDevice;
 import org.openhab.binding.simatic.internal.simatic.SimaticTCP;
 import org.openhab.binding.simatic.internal.simatic.SimaticTCP200;
 import org.openhab.core.library.types.DecimalType;
+import org.openhab.core.library.types.QuantityType;
 import org.openhab.core.library.types.StringType;
+import org.openhab.core.library.unit.Units;
 import org.openhab.core.thing.Bridge;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
@@ -223,7 +225,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
                 updateState(channelUID, new StringType(SimaticBindingConstants.VERSION));
             } else if (channelUID.equals(chPduSize)) {
                 if (connection != null && connection.isConnected()) {
-                    updateState(chPduSize, new DecimalType(connection.getPduSize()));
+                    updateState(chPduSize, new QuantityType<>(connection.getPduSize(), Units.BYTE));
                 }
             } else if (channelUID.equals(chAreas)) {
                 if (connection != null && connection.isConnected()) {

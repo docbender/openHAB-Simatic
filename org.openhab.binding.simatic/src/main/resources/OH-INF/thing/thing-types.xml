@@ -128,12 +128,16 @@
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>
-				<description>Simatic address to get item state. If empty no data will be received.</description>
+				<description>Simatic address to get item state. If empty, no data will be received.</description>
 			</parameter>
 			<parameter name="commandAddress" type="text">
 				<label>Command address</label>
-				<description>Simatic address to command item. If empty no data will be sent.</description>
+				<description>Simatic address to command item. If empty, no data will be sent.</description>
 			</parameter>
+            <parameter name="unit" type="text">
+                <label>Unit</label>
+                <description>Received number unit. If specified, unit is send into openHAB together with new value. No validation against data type is provided.</description>
+            </parameter>			
 		</config-description>
 	</channel-type>
 	<channel-type id="chColor">
@@ -143,11 +147,11 @@
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>
-				<description>Simatic address to get item state. If empty no data will be received.</description>
+				<description>Simatic address to get item state. If empty, no data will be received.</description>
 			</parameter>
 			<parameter name="commandAddress" type="text">
 				<label>Command address</label>
-				<description>Simatic address to command item. If empty no data will be sent.</description>
+				<description>Simatic address to command item. If empty, no data will be sent.</description>
 			</parameter>
 		</config-description>
 	</channel-type>
@@ -158,11 +162,11 @@
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>
-				<description>Simatic address to get item state. If empty no data will be received.</description>
+				<description>Simatic address to get item state. If empty, no data will be received.</description>
 			</parameter>
 			<parameter name="commandAddress" type="text">
 				<label>Command address</label>
-				<description>Simatic address to command item. If empty no data will be sent.</description>
+				<description>Simatic address to command item. If empty, no data will be sent.</description>
 			</parameter>
 		</config-description>
 	</channel-type>
@@ -173,11 +177,11 @@
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>
-				<description>Simatic address to get item state. If empty no data will be received.</description>
+				<description>Simatic address to get item state. If empty, no data will be received.</description>
 			</parameter>
 			<parameter name="commandAddress" type="text">
 				<label>Command address</label>
-				<description>Simatic address to command item. If empty no data will be sent.</description>
+				<description>Simatic address to command item. If empty, no data will be sent.</description>
 			</parameter>
 		</config-description>
 	</channel-type>
@@ -188,11 +192,11 @@
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>
-				<description>Simatic address to get item state. If empty no data will be received.</description>
+				<description>Simatic address to get item state. If empty, no data will be received.</description>
 			</parameter>
 			<parameter name="commandAddress" type="text">
 				<label>Command address</label>
-				<description>Simatic address to command item. If empty no data will be sent.</description>
+				<description>Simatic address to command item. If empty, no data will be sent.</description>
 			</parameter>
 		</config-description>
 	</channel-type>
@@ -203,11 +207,11 @@
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>
-				<description>Simatic address to get item state. If empty no data will be received.</description>
+				<description>Simatic address to get item state. If empty, no data will be received.</description>
 			</parameter>
 			<parameter name="commandAddress" type="text">
 				<label>Command address</label>
-				<description>Simatic address to command item. If empty no data will be sent.</description>
+				<description>Simatic address to command item. If empty, no data will be sent.</description>
 			</parameter>
 		</config-description>
 	</channel-type>
@@ -222,11 +226,11 @@
 		<config-description>
 			<parameter name="stateAddress" type="text">
 				<label>State address</label>
-				<description>Simatic address to get item state. If empty no data will be received.</description>
+				<description>Simatic address to get item state. If empty, no data will be received.</description>
 			</parameter>
 			<parameter name="commandAddress" type="text">
 				<label>Command address</label>
-				<description>Simatic address to command item. If empty no data will be sent.</description>
+				<description>Simatic address to command item. If empty, no data will be sent.</description>
 			</parameter>
 		</config-description>
 	</channel-type>

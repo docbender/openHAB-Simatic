@@ -34,6 +34,7 @@ import org.openhab.core.library.types.HSBType;
 import org.openhab.core.library.types.OnOffType;
 import org.openhab.core.library.types.OpenClosedType;
 import org.openhab.core.library.types.PercentType;
+import org.openhab.core.library.types.QuantityType;
 import org.openhab.core.library.types.StringType;
 import org.openhab.core.types.Command;
 import org.slf4j.Logger;
@@ -580,7 +581,8 @@ public class SimaticGenericDevice implements SimaticIDevice {
 
             } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_NUMBER)) {
                 if (item.getStateAddress().isFloat()) {
-                    item.setState(new DecimalType(bb.getFloat()));
+                    item.setState(item.hasUnit() ? new QuantityType<>(bb.getFloat(), item.getUnit())
+                            : new DecimalType(bb.getFloat()));
                 } else {
                     final int intValue;
                     if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
@@ -595,7 +597,8 @@ public class SimaticGenericDevice implements SimaticIDevice {
                         intValue = 0;
                     }
 
-                    item.setState(new DecimalType(intValue));
+                    item.setState(
+                            item.hasUnit() ? new QuantityType<>(intValue, item.getUnit()) : new DecimalType(intValue));
                 }
             } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_DIMMER)) {
                 item.setState(new PercentType(bb.get()));

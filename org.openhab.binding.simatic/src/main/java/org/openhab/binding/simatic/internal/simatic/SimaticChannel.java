@@ -15,18 +15,25 @@ package org.openhab.binding.simatic.internal.simatic;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.measure.Unit;
+
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.simatic.internal.SimaticBindingConstants;
 import org.openhab.binding.simatic.internal.handler.SimaticGenericHandler;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.type.ChannelTypeUID;
 import org.openhab.core.types.State;
+import org.openhab.core.types.util.UnitUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author VitaTucek - Initial contribution
  *
  */
 public class SimaticChannel {
+    private static final Logger logger = LoggerFactory.getLogger(SimaticChannel.class);
+
     /** Channel ID */
     public ChannelUID channelId;
     /** ChannelType ID */
@@ -35,6 +42,8 @@ public class SimaticChannel {
     public String stateAddress;
     /** Command string address */
     public String commandAddress;
+    /** Number value unit */
+    public String unit;
     /** Stored state value */
     private State value;
     /** Channel configuration error */
@@ -48,6 +57,8 @@ public class SimaticChannel {
     /** Last value update */
     private long valueUpdateTime = 0;
     private boolean missingCommandReported = false;
+    private Unit<?> unitInstance = null;
+    private boolean unitExists = false;
 
     final private static Pattern numberAddressPattern = Pattern.compile(
             "^(([IQAEM][BW])(\\d+))$|^(([IQAEM]D)(\\d+)(F?))$|^(DB(\\d+)\\.DB([BW])(\\d+))$|^(DB(\\d+)\\.DB(D)(\\d+)(F?))$|^(([IQAEM])(\\d+)\\.([0-7]))$|^(DB(\\d+)\\.DBX(\\d+)\\.([0-7]))$");
@@ -104,6 +115,15 @@ public class SimaticChannel {
 
         if (commandAddress != null && (commandAddressPlc = checkAddress(commandAddress, true)) == null) {
             return false;
+        }
+
+        if (unit != null) {
+            unitInstance = UnitUtils.parseUnit(unit);
+            if (unitInstance != null) {
+                unitExists = true;
+            } else {
+                logger.warn("Channel {} - cannot parse defined unit({})", this.toString(), unit);
+            }
         }
 
         return true;
@@ -314,6 +334,24 @@ public class SimaticChannel {
      */
     public @Nullable SimaticPLCAddress getCommandAddress() {
         return commandAddressPlc;
+    }
+
+    /**
+     * Get number value unit
+     *
+     * @return Unit
+     */
+    public Unit<?> getUnit() {
+        return unitInstance;
+    }
+
+    /**
+     * Check if unit presented
+     *
+     * @return Unit exists flag
+     */
+    public boolean hasUnit() {
+        return unitExists;
     }
 
     /**
