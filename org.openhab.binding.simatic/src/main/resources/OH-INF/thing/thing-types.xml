@@ -28,7 +28,7 @@
 				<default>0</default>
 			</parameter>
 			<parameter name="slot" type="integer" min="0" max="15" required="true">
-				<label>Rack number</label>
+				<label>Slot number</label>
 				<description>The slot number where CPU is inserted</description>
 				<default>2</default>
 			</parameter>
