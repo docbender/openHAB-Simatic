@@ -480,14 +480,14 @@ public class SimaticGenericDevice implements SimaticIDevice {
             @Override
             public int compare(SimaticChannel o1, SimaticChannel o2) {
                 var o1A = o1.getStateAddress();
-                if (o1A == null) {
-                    if (o2.getStateAddress() == null) {
-                        return 0;
-                    } else {
-                        return 1;
-                    }
-                }
-                return (o1A).compareTo(o2.getStateAddress());
+                var o2A = o2.getStateAddress();
+                if (o1A != null && o2A != null) {
+                    return (o1A).compareTo(o2A);
+                } else if (o2A != null) {
+                    return 1;
+                } else {
+                    return 0;
+                }                         
             }
         });
 
