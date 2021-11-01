@@ -11,7 +11,6 @@ package org.openhab.binding.simatic.internal.simatic;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
-import org.openhab.binding.simatic.internal.SimaticBindingConstants;
 import org.openhab.binding.simatic.internal.libnodave.Nodave;
 import org.openhab.core.library.types.HSBType;
 import org.openhab.core.library.types.OnOffType;
@@ -49,11 +48,11 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
 
         byte[] data = null;
 
-        if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_NUMBER)) {
+        if (channel.isNumber()) {
             if (!(command instanceof Number)) {
                 throw new Exception(String.format(
                         "Cannot create WriteDataArea. Command for ChannelType=%s must be DecimalType. It is %s (%s)",
-                        channel.channelType.getId(), command.getClass().getSimpleName(),
+                        channel.getChannelType().getId(), command.getClass().getSimpleName(),
                         command.getClass().getGenericSuperclass().getTypeName()));
             }
             Number cmd = (Number) command;
@@ -75,14 +74,14 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
             } else {
                 throw new Exception(String.format(
                         "Cannot create WriteDataArea. Command for ChannelType=%s has unsupported datatype=%s",
-                        channel.channelType.getId(), address.getSimaticDataType()));
+                        channel.getChannelType().getId(), address.getSimaticDataType()));
             }
-        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_STRING)) {
+        } else if (channel.isString()) {
 
             if (!(command instanceof StringType)) {
                 throw new Exception(
                         String.format("Cannot create WriteDataArea. Command for ChannelType=%s must be StringType",
-                                channel.channelType.getId()));
+                                channel.getChannelType().getId()));
             }
             StringType cmd = (StringType) command;
             String str = cmd.toString();
@@ -98,11 +97,11 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                     data[i] = 0x0;
                 }
             }
-        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_SWITCH)) {
+        } else if (channel.isSwitch()) {
             if (!(command instanceof OnOffType)) {
                 throw new Exception(
                         String.format("Cannot create WriteDataArea. Command for ChannelType=%s must be OnOffType",
-                                channel.channelType.getId()));
+                                channel.getChannelType().getId()));
             }
 
             OnOffType cmd = (OnOffType) command;
@@ -112,11 +111,11 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
             } else {
                 data = new byte[] { 0 };
             }
-        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_CONTACT)) {
+        } else if (channel.isContact()) {
             if (!(command instanceof OpenClosedType)) {
                 throw new Exception(
                         String.format("Cannot create WriteDataArea. Command for ChannelType=%s must be OpenClosedType",
-                                channel.channelType.getId()));
+                                channel.getChannelType().getId()));
             }
 
             OpenClosedType cmd = (OpenClosedType) command;
@@ -126,7 +125,7 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
             } else {
                 data = new byte[] { 0 };
             }
-        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_COLOR)) {
+        } else if (channel.isColor()) {
             if (command instanceof HSBType) {
                 long red = Math.round((((HSBType) command).getRed().doubleValue() * 2.55));
                 long green = Math.round((((HSBType) command).getGreen().doubleValue() * 2.55));
@@ -146,9 +145,9 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
             } else {
                 throw new Exception(
                         String.format("Cannot create WriteDataArea. Command %s for ChannelType=%s not implemented",
-                                command.getClass(), channel.channelType.getId()));
+                                command.getClass(), channel.getChannelType().getId()));
             }
-        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_DIMMER)) {
+        } else if (channel.isDimmer()) {
             if (command instanceof PercentType) {
                 data = new byte[] { ((PercentType) command).byteValue() };
             } else if (command instanceof OnOffType) {
@@ -160,9 +159,9 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
             } else {
                 throw new Exception(
                         String.format("Cannot create WriteDataArea. Command %s for ChannelType=%s not implemented",
-                                command.getClass(), channel.channelType.getId()));
+                                command.getClass(), channel.getChannelType().getId()));
             }
-        } else if (channel.channelType.getId().equals(SimaticBindingConstants.CHANNEL_ROLLERSHUTTER)) {
+        } else if (channel.isRollershutter()) {
             if (command instanceof StopMoveType) {
                 if (address.getSimaticDataType() == SimaticPLCDataTypes.WORD) {
                     data = new byte[] { (byte) (((StopMoveType) command).equals(StopMoveType.MOVE) ? 0x1 : 0x2), 0 };
@@ -181,17 +180,17 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
                 } else {
                     throw new Exception(String.format(
                             "Cannot create WriteDataArea. Command %s ChannelType=%s need for position set command address length of WORD.",
-                            command.getClass(), channel.channelType.getId()));
+                            command.getClass(), channel.getChannelType().getId()));
                 }
             } else {
                 throw new Exception(
                         String.format("Cannot create WriteDataArea. Command %s for ChannelType=%s not implemented",
-                                command.getClass(), channel.channelType.getId()));
+                                command.getClass(), channel.getChannelType().getId()));
             }
         } else {
             throw new Exception(
                     String.format("Cannot create WriteDataArea. Command for ChannelType=%s not implemented.",
-                            channel.channelType.getId()));
+                            channel.getChannelType().getId()));
         }
 
         return new SimaticWriteDataArea(address, data, pduSize);

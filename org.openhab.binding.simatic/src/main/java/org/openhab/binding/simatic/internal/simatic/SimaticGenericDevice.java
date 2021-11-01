@@ -8,8 +8,6 @@
  */
 package org.openhab.binding.simatic.internal.simatic;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,16 +24,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
-import org.openhab.binding.simatic.internal.SimaticBindingConstants;
 import org.openhab.binding.simatic.internal.simatic.SimaticPortState.PortStates;
 import org.openhab.core.common.ThreadPoolManager;
-import org.openhab.core.library.types.DecimalType;
-import org.openhab.core.library.types.HSBType;
-import org.openhab.core.library.types.OnOffType;
-import org.openhab.core.library.types.OpenClosedType;
-import org.openhab.core.library.types.PercentType;
-import org.openhab.core.library.types.QuantityType;
-import org.openhab.core.library.types.StringType;
 import org.openhab.core.types.Command;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +38,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SimaticGenericDevice implements SimaticIDevice {
     private static final Logger logger = LoggerFactory.getLogger(SimaticGenericDevice.class);
-    private static final String THING_HANDLER_THREADPOOL_NAME = "thingHandler";
+    private static final String THING_HANDLER_THREADPOOL_NAME = "Simatic";
     protected final ScheduledExecutorService scheduler = ThreadPoolManager
             .getScheduledPool(THING_HANDLER_THREADPOOL_NAME);
 
@@ -78,6 +68,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     /** PDU size **/
     protected int pduSize = 0;
     protected final Charset charset;
+    protected final SimaticUpdateMode updateMode;
 
     protected boolean disposed = false;
 
@@ -106,8 +97,9 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * Constructor
      *
      */
-    public SimaticGenericDevice(int pollRate, Charset charset) {
+    public SimaticGenericDevice(int pollRate, Charset charset, SimaticUpdateMode updateMode) {
         this.charset = charset;
+        this.updateMode = updateMode;
         if (pollRate > 0) {
             periodicJob = scheduler.scheduleAtFixedRate(() -> {
                 if (!reconnecting.get()) {
@@ -155,10 +147,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
         if (shouldReconnect()) {
             reconnectWithDelaying();
         }
-        if (isConnected()) {
-            // check device for new data
-            checkNewData();
-        }
+        checkNewData();
     }
 
     @Override
@@ -286,7 +275,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
             var area = SimaticWriteDataArea.create(command, item, pduSize, charset);
             sendData(area);
         } catch (Exception ex) {
-            logger.error("{} - ChannelUID={}. {}.", toString(), item.channelId, ex.getMessage(), ex);
+            logger.error("{} - ChannelUID={}. {}.", toString(), item.getChannelId(), ex.getMessage(), ex);
         }
     }
 
@@ -406,18 +395,20 @@ public class SimaticGenericDevice implements SimaticIDevice {
             return;
         }
 
-        if (logger.isTraceEnabled()) {
-            logger.trace("{} - checkNewData() is called", toString());
-        }
-
+        /*
+         * if (logger.isTraceEnabled()) {
+         * logger.trace("{} - checkNewData() is called", toString());
+         * }
+         */
         if (!readLock.tryLock()) {
             if (logger.isDebugEnabled()) {
                 logger.debug("{} - Reading already in progress", toString());
             }
             return;
         }
-
-        logger.trace("{} - Locking", toString());
+        /*
+         * logger.trace("{} - Locking", toString());
+         */
 
         try {
             for (SimaticReadDataArea area : readAreasList.getData()) {
@@ -438,14 +429,18 @@ public class SimaticGenericDevice implements SimaticIDevice {
                 readed++;
                 readedBytes += area.getAddressSpaceLength();
 
-                if (logger.isDebugEnabled()) {
-                    logger.debug("{} - Reading finished. Area={}", toString(), area.toString());
-                }
+                /*
+                 * if (logger.isDebugEnabled()) {
+                 * logger.debug("{} - Reading finished. Area={}", toString(), area.toString());
+                 * }
+                 */
             }
         } catch (Exception ex) {
             logger.error("{} - Read data error", toString(), ex);
         } finally {
-            logger.trace("{} - Unlocking", toString());
+            /*
+             * logger.trace("{} - Unlocking", toString());
+             */
             readLock.unlock();
 
             long diff;
@@ -487,7 +482,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
                     return 1;
                 } else {
                     return 0;
-                }                         
+                }
             }
         });
 
@@ -545,104 +540,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
         readLock.unlock();
     }
 
-    /**
-     * Method decode incoming data and on success post this into openHAB
-     *
-     * @param item
-     * @param buffer
-     * @param position
-     */
-    @SuppressWarnings("null")
-    public void postValue(SimaticChannel item, byte[] buffer, int position) {
-        // logger.debug("item={}", item.toString());
-        // logger.debug("buffer={}", buffer.length);
-        // logger.debug("position={}", position);
-        // logger.debug("item len={}", item.getStateAddress().getDataLength());
-        try {
-            ByteBuffer bb = ByteBuffer.wrap(buffer, position, item.getStateAddress().getDataLength());
-
-            // no byte swap for array
-            // if (item.datatype == SimaticTypes.ARRAY) {
-            bb.order(ByteOrder.BIG_ENDIAN);
-            // } else {
-            // bb.order(ByteOrder.LITTLE_ENDIAN);
-            // }
-
-            if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_STRING)) {
-                // check for '\0' char and resolve string length
-                int i;
-                for (i = position; i < item.getStateAddress().getDataLength(); i++) {
-                    if (buffer[i] == 0) {
-                        break;
-                    }
-                }
-                String str = new String(buffer, position, i, charset);
-                item.setState(new StringType(str));
-
-            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_NUMBER)) {
-                if (item.getStateAddress().isFloat()) {
-                    item.setState(item.hasUnit() ? new QuantityType<>(bb.getFloat(), item.getUnit())
-                            : new DecimalType(bb.getFloat()));
-                } else {
-                    final int intValue;
-                    if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
-                        intValue = (bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? 1 : 0;
-                    } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BYTE) {
-                        intValue = bb.get();
-                    } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.WORD) {
-                        intValue = bb.getShort();
-                    } else if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.DWORD) {
-                        intValue = bb.getInt();
-                    } else {
-                        intValue = 0;
-                    }
-
-                    item.setState(
-                            item.hasUnit() ? new QuantityType<>(intValue, item.getUnit()) : new DecimalType(intValue));
-                }
-            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_DIMMER)) {
-                item.setState(new PercentType(bb.get()));
-            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_CONTACT)) {
-                if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
-                    item.setState((bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0
-                            ? OpenClosedType.OPEN
-                            : OpenClosedType.CLOSED);
-                } else {
-                    item.setState((bb.get() != 0) ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
-                }
-            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_SWITCH)) {
-                if (item.getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
-                    item.setState(
-                            (bb.get() & (int) Math.pow(2, item.getStateAddress().getBitOffset())) != 0 ? OnOffType.ON
-                                    : OnOffType.OFF);
-                } else {
-                    item.setState(bb.get() != 0 ? OnOffType.ON : OnOffType.OFF);
-                }
-            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_ROLLERSHUTTER)) {
-                item.setState(new PercentType(bb.get()));
-            } else if (item.channelType.getId().equals(SimaticBindingConstants.CHANNEL_COLOR)) {
-                byte b0 = bb.get();
-                byte b1 = bb.get();
-                byte b2 = bb.get();
-                // byte b3 = bb.get();
-
-                item.setState(HSBType.fromRGB(b0 & 0xFF, b1 & 0xFF, b2 & 0xFF));
-            } else {
-                item.setState(null);
-                logger.warn("{} - Incoming data channel {} - Unsupported channel type {}.", toString(), item.channelId,
-                        item.channelType.getId());
-                return;
-            }
-        } catch (Exception ex) {
-            logger.error("{} - Incoming data post error. Item:{}/state:{}.", toString(), item.channelId,
-                    item.getState(), ex);
-        }
-
-        if (logger.isTraceEnabled()) {
-            logger.trace("{} - Incoming data - item:{}/state:{}", toString(), item.channelId, item.getState());
-        }
-    }
-
     public boolean shouldReconnect() {
         return tryReconnect.get();
     }
@@ -689,5 +586,13 @@ public class SimaticGenericDevice implements SimaticIDevice {
         s.append("]");
 
         return s.toString();
+    }
+
+    public Charset getCharset() {
+        return charset;
+    }
+
+    public SimaticUpdateMode getUpdateMode() {
+        return updateMode;
     }
 }

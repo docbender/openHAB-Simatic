@@ -32,18 +32,22 @@ public class SimaticTCP extends SimaticGenericDevice {
     private static final Logger logger = LoggerFactory.getLogger(SimaticTCP.class);
 
     /** address */
-    protected String plcAddress = "";
+    protected final String plcAddress;
     /** rack/slot */
     protected final int rack, slot, communicationType;
 
-    Socket sock;
-    PLCinterface di;
-    TCPConnection dc;
-    OutputStream oStream = null;
-    InputStream iStream = null;
+    protected Socket sock;
+    protected PLCinterface di;
+    protected TCPConnection dc;
+    protected OutputStream oStream = null;
+    protected InputStream iStream = null;
 
-    /** server socket instance */
-    // private AsynchronousServerSocketChannel listener;
+    /** procedure start time **/
+    private long startTime;
+    /** read data buffer **/
+    byte[] buffer = null;
+    /** function result **/
+    int rResult, wResult;
 
     /**
      * Constructor
@@ -53,9 +57,10 @@ public class SimaticTCP extends SimaticGenericDevice {
      * @param slot
      * @param pollRate
      * @param charset
+     * @param updateMode
      */
-    public SimaticTCP(String address, int rack, int slot, int pollRate, Charset charset) {
-        super(pollRate, charset);
+    public SimaticTCP(String address, int rack, int slot, int pollRate, Charset charset, SimaticUpdateMode updateMode) {
+        super(pollRate, charset, updateMode);
 
         this.plcAddress = address;
         this.rack = rack;
@@ -73,9 +78,11 @@ public class SimaticTCP extends SimaticGenericDevice {
      * @param communicationType
      * @param pollRate
      * @param charset
+     * @param updateMode
      */
-    public SimaticTCP(String address, int rack, int slot, String communicationType, int pollRate, Charset charset) {
-        super(pollRate, charset);
+    public SimaticTCP(String address, int rack, int slot, String communicationType, int pollRate, Charset charset,
+            SimaticUpdateMode updateMode) {
+        super(pollRate, charset, updateMode);
 
         this.plcAddress = address;
         this.rack = rack;
@@ -214,13 +221,13 @@ public class SimaticTCP extends SimaticGenericDevice {
             }
 
             try {
-                int result = dc.writeBytes(data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
+                wResult = dc.writeBytes(data.getAreaIntFormat(), data.getDBNumber(), data.getStartAddress(),
                         data.getAddressSpaceLength(), data.getData());
-                if (result != 0) {
+                if (wResult != 0) {
                     logger.error("{} - Write data area error (Area={}, Result=0x{}, Error={})", toString(),
-                            data.toString(), Integer.toHexString(result), Nodave.strerror(result));
+                            data.toString(), Integer.toHexString(wResult), Nodave.strerror(wResult));
 
-                    if (result == Nodave.RESULT_UNEXPECTED_FUNC) {
+                    if (wResult == Nodave.RESULT_UNEXPECTED_FUNC) {
                         tryReconnect.set(true);
                     }
                     return false;
@@ -282,12 +289,13 @@ public class SimaticTCP extends SimaticGenericDevice {
     @SuppressWarnings("null")
     @Override
     public void readDataArea(SimaticReadDataArea area) throws SimaticReadException {
-        long startTime = System.currentTimeMillis();
-        byte[] buffer = new byte[area.getAddressSpaceLength()];
+        startTime = System.currentTimeMillis();
+        if (buffer == null || buffer.length < area.getAddressSpaceLength()) {
+            buffer = new byte[area.getAddressSpaceLength()];
+        }
 
-        int result;
         try {
-            result = dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
+            rResult = dc.readBytes(area.getAreaIntFormat(), area.getDBNumber(), area.getStartAddress(),
                     area.getAddressSpaceLength(), buffer);
         } catch (IOException ex) {
             if (isConnected()) {
@@ -297,11 +305,11 @@ public class SimaticTCP extends SimaticGenericDevice {
             throw new SimaticReadException(area, ex);
         }
 
-        if (result != 0) {
+        if (rResult != 0) {
             String message = String.format("Read data area error (Area=%s, Return code=0x%s, Error=%s})",
-                    area.toString(), Integer.toHexString(result), Nodave.strerror(result));
-            if (result == Nodave.RESULT_UNEXPECTED_FUNC || result == Nodave.RESULT_READ_DATA_BUFFER_INSUFFICIENT_SPACE
-                    || result == Nodave.RESULT_NO_DATA_RETURNED) {
+                    area.toString(), Integer.toHexString(rResult), Nodave.strerror(rResult));
+            if (rResult == Nodave.RESULT_UNEXPECTED_FUNC || rResult == Nodave.RESULT_READ_DATA_BUFFER_INSUFFICIENT_SPACE
+                    || rResult == Nodave.RESULT_NO_DATA_RETURNED) {
                 if (isConnected()) {
                     portState.setState(PortStates.RESPONSE_ERROR);
                     tryReconnect.set(true);
@@ -317,12 +325,11 @@ public class SimaticTCP extends SimaticGenericDevice {
             }
         }
 
-        int start = area.getStartAddress();
         long response = System.currentTimeMillis() - startTime;
         // get data for all items in area
         for (SimaticChannel item : area.getItems()) {
             // send value into openHAB
-            postValue(item, buffer, item.getStateAddress().getByteOffset() - start);
+            item.setState(buffer, area.getStartAddress());
         }
     }
 

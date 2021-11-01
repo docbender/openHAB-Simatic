@@ -12,6 +12,8 @@
  */
 package org.openhab.binding.simatic.internal.simatic;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,6 +22,13 @@ import javax.measure.Unit;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.simatic.internal.SimaticBindingConstants;
 import org.openhab.binding.simatic.internal.handler.SimaticGenericHandler;
+import org.openhab.core.library.types.DecimalType;
+import org.openhab.core.library.types.HSBType;
+import org.openhab.core.library.types.OnOffType;
+import org.openhab.core.library.types.OpenClosedType;
+import org.openhab.core.library.types.PercentType;
+import org.openhab.core.library.types.QuantityType;
+import org.openhab.core.library.types.StringType;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.type.ChannelTypeUID;
 import org.openhab.core.types.State;
@@ -35,9 +44,9 @@ public class SimaticChannel {
     private static final Logger logger = LoggerFactory.getLogger(SimaticChannel.class);
 
     /** Channel ID */
-    public ChannelUID channelId;
+    private ChannelUID channelId;
     /** ChannelType ID */
-    public ChannelTypeUID channelType;
+    private ChannelTypeUID channelType;
     /** State string address */
     public String stateAddress;
     /** Command string address */
@@ -59,6 +68,7 @@ public class SimaticChannel {
     private boolean missingCommandReported = false;
     private Unit<?> unitInstance = null;
     private boolean unitExists = false;
+    private boolean chContact, chColor, chDimmer, chNumber, chRollershutter, chString, chSwitch;
 
     final private static Pattern numberAddressPattern = Pattern.compile(
             "^(([IQAEM][BW])(\\d+))$|^(([IQAEM]D)(\\d+)(F?))$|^(DB(\\d+)\\.DB([BW])(\\d+))$|^(DB(\\d+)\\.DB(D)(\\d+)(F?))$|^(([IQAEM])(\\d+)\\.([0-7]))$|^(DB(\\d+)\\.DBX(\\d+)\\.([0-7]))$");
@@ -85,7 +95,7 @@ public class SimaticChannel {
      * Initialize channel from thing configuration
      *
      * @param handler Thing handler
-     * @return True if initialization is OK. When initialization not succeed, reason can be obtaion by getError()
+     * @return True if initialization is OK. When initialization not succeed, reason can be obtain by getError()
      */
     public boolean init(SimaticGenericHandler handler) {
         missingCommandReported = false;
@@ -355,18 +365,116 @@ public class SimaticChannel {
     }
 
     /**
+     * Set state from incoming data
+     *
+     * @param buffer Incoming data
+     * @param position Data start position in buffer
+     */
+    public void setState(byte[] buffer, int start) {
+        // logger.debug("item={}", toString());
+        // logger.debug("buffer={}", buffer.length);
+        // logger.debug("position={}", position);
+        // logger.debug("item len={}", getStateAddress().getDataLength());
+
+        int position = getStateAddress().getByteOffset() - start;
+
+        try {
+            ByteBuffer bb = ByteBuffer.wrap(buffer, position, getStateAddress().getDataLength());
+            bb.order(ByteOrder.BIG_ENDIAN);
+
+            if (isString()) {
+                // check for '\0' char and resolve string length
+                int i;
+                for (i = position; i < getStateAddress().getDataLength(); i++) {
+                    if (buffer[i] == 0) {
+                        break;
+                    }
+                }
+                String str = new String(buffer, position, i, thing.getCharset());
+                setState(new StringType(str));
+            } else if (isNumber()) {
+                if (getStateAddress().isFloat()) {
+                    setState(hasUnit() ? new QuantityType<>(bb.getFloat(), getUnit()) : new DecimalType(bb.getFloat()));
+                } else {
+                    final int intValue;
+                    if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
+                        intValue = (bb.get() & (int) Math.pow(2, getStateAddress().getBitOffset())) != 0 ? 1 : 0;
+                    } else if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BYTE) {
+                        intValue = bb.get();
+                    } else if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.WORD) {
+                        intValue = bb.getShort();
+                    } else if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.DWORD) {
+                        intValue = bb.getInt();
+                    } else {
+                        intValue = 0;
+                    }
+
+                    setState(hasUnit() ? new QuantityType<>(intValue, getUnit()) : new DecimalType(intValue));
+                }
+            } else if (isDimmer()) {
+                setState(new PercentType(bb.get()));
+            } else if (isContact()) {
+                if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
+                    setState((bb.get() & (int) Math.pow(2, getStateAddress().getBitOffset())) != 0 ? OpenClosedType.OPEN
+                            : OpenClosedType.CLOSED);
+                } else {
+                    setState((bb.get() != 0) ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
+                }
+            } else if (isSwitch()) {
+                if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
+                    setState((bb.get() & (int) Math.pow(2, getStateAddress().getBitOffset())) != 0 ? OnOffType.ON
+                            : OnOffType.OFF);
+                } else {
+                    setState(bb.get() != 0 ? OnOffType.ON : OnOffType.OFF);
+                }
+            } else if (isRollershutter()) {
+                setState(new PercentType(bb.get()));
+            } else if (isColor()) {
+                byte b0 = bb.get();
+                byte b1 = bb.get();
+                byte b2 = bb.get();
+                // byte b3 = bb.get();
+
+                setState(HSBType.fromRGB(b0 & 0xFF, b1 & 0xFF, b2 & 0xFF));
+            } else {
+                setState(null);
+                logger.warn("{} - Incoming data channel {} - Unsupported channel type {}.", toString(), channelId,
+                        channelType.getId());
+                return;
+            }
+        } catch (Exception ex) {
+            logger.error("{} - Incoming data post error. Item:{}", toString(), channelId, ex);
+        }
+
+        /*
+         * if (logger.isTraceEnabled()) {
+         * logger.trace("{} - Incoming data - item:{}/state:{}", toString(), channelId, getState());
+         * }
+         */
+    }
+
+    /**
      * Set last channel state
      *
      * @param state
      */
     public void setState(State state) {
-        value = state;
+        // not thing no update
         if (thing == null) {
             return;
         }
-        thing.updateState(channelId, state);
-        setValueUpdateTime(System.currentTimeMillis());
+        // clear thing errors
         clearError();
+        // in OnChange mode, only changed values are forwarded
+        if (thing.getUpdateMode() == SimaticUpdateMode.OnChange && value != null && value.equals(state)) {
+            return;
+        }
+        // store value internally
+        value = state;
+        // sent value into OH core
+        thing.updateState(channelId, state);
+        // mark update time
+        setValueUpdateTime(System.currentTimeMillis());
     }
 
     /**
@@ -434,5 +542,125 @@ public class SimaticChannel {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Set channel ID
+     *
+     * @param channelUID ChannelUID
+     */
+    public void setChannelId(ChannelUID channelUID) {
+        this.channelId = channelUID;
+    }
+
+    /**
+     * Set channel type
+     *
+     * @param channelTypeUID ChannelTypeUID
+     */
+    public void setChannelType(ChannelTypeUID channelTypeUID) {
+        this.channelType = channelTypeUID;
+
+        chContact = chColor = chDimmer = chNumber = chRollershutter = chString = chSwitch = false;
+        switch (channelType.getId()) {
+            case SimaticBindingConstants.CHANNEL_CONTACT:
+                chContact = true;
+                break;
+            case SimaticBindingConstants.CHANNEL_COLOR:
+                chColor = true;
+                break;
+            case SimaticBindingConstants.CHANNEL_DIMMER:
+                chDimmer = true;
+                break;
+            case SimaticBindingConstants.CHANNEL_NUMBER:
+                chNumber = true;
+                break;
+            case SimaticBindingConstants.CHANNEL_ROLLERSHUTTER:
+                chRollershutter = true;
+                break;
+            case SimaticBindingConstants.CHANNEL_STRING:
+                chString = true;
+                break;
+            case SimaticBindingConstants.CHANNEL_SWITCH:
+                chSwitch = true;
+                break;
+        }
+    }
+
+    /**
+     * Get channel ID
+     */
+    public ChannelUID getChannelId() {
+        return channelId;
+    }
+
+    /**
+     * Get channel type
+     */
+    public ChannelTypeUID getChannelType() {
+        return channelType;
+    }
+
+    /**
+     * Check Contact channel type
+     *
+     * @return True if channel has that type
+     */
+    public boolean isContact() {
+        return chContact;
+    }
+
+    /**
+     * Check Color channel type
+     *
+     * @return True if channel has that type
+     */
+    public boolean isColor() {
+        return chColor;
+    }
+
+    /**
+     * Check Dimmer channel type
+     *
+     * @return True if channel has that type
+     */
+    public boolean isDimmer() {
+        return chDimmer;
+    }
+
+    /**
+     * Check Number channel type
+     *
+     * @return True if channel has that type
+     */
+    public boolean isNumber() {
+        return chNumber;
+    }
+
+    /**
+     * Check Rollershutter channel type
+     *
+     * @return True if channel has that type
+     */
+    public boolean isRollershutter() {
+        return chRollershutter;
+    }
+
+    /**
+     * Check String channel type
+     *
+     * @return True if channel has that type
+     */
+    public boolean isString() {
+        return chString;
+    }
+
+    /**
+     * Check Switch channel type
+     *
+     * @return True if channel has that type
+     */
+    public boolean isSwitch() {
+        return chSwitch;
     }
 }

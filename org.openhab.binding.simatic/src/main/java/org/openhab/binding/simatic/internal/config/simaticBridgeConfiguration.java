@@ -12,6 +12,8 @@
  */
 package org.openhab.binding.simatic.internal.config;
 
+import org.openhab.binding.simatic.internal.simatic.SimaticUpdateMode;
+
 /**
  * The {@link SimaticBridgeConfiguration} class contains fields mapping thing configuration parameters.
  *
@@ -53,4 +55,19 @@ public class SimaticBridgeConfiguration {
      * Device poll rate
      */
     public int pollRate = 1000;
+
+    /**
+     * Value update mode (OC,PL)
+     */
+    public String updateMode = "OnChange";
+
+    /**
+     * Get Value Update Mode
+     *
+     * @return Return Update mode
+     */
+    public SimaticUpdateMode getUpdateMode() {
+        return SimaticUpdateMode.valueOf(updateMode);
+    }
+
 }

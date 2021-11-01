@@ -12,6 +12,7 @@
  */
 package org.openhab.binding.simatic.internal.handler;
 
+import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -19,6 +20,7 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.simatic.internal.simatic.SimaticChannel;
 import org.openhab.binding.simatic.internal.simatic.SimaticGenericDevice;
+import org.openhab.binding.simatic.internal.simatic.SimaticUpdateMode;
 import org.openhab.core.thing.Channel;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
@@ -71,8 +73,8 @@ public class SimaticGenericHandler extends BaseThingHandler {
             }
 
             final SimaticChannel chConfig = channel.getConfiguration().as(SimaticChannel.class);
-            chConfig.channelId = channelUID;
-            chConfig.channelType = channelTypeUID;
+            chConfig.setChannelId(channelUID);
+            chConfig.setChannelType(channelTypeUID);
 
             if (!chConfig.init(this)) {
                 errors++;
@@ -218,6 +220,9 @@ public class SimaticGenericHandler extends BaseThingHandler {
         updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, message);
     }
 
+    /**
+     * Clear thing error if necessary
+     */
     public void clearError() {
         // no error
         if (getThing().getStatus() == ThingStatus.ONLINE) {
@@ -228,5 +233,31 @@ public class SimaticGenericHandler extends BaseThingHandler {
         if (System.currentTimeMillis() - errorSetTime > 10000) {
             updateStatus(ThingStatus.ONLINE);
         }
+    }
+
+    /**
+     * Get configured code page
+     *
+     * @return
+     */
+    public Charset getCharset() {
+        if (connection != null) {
+            return connection.getCharset();
+        }
+
+        return Charset.defaultCharset();
+    }
+
+    /**
+     * Get configured update mode
+     *
+     * @return
+     */
+    public SimaticUpdateMode getUpdateMode() {
+        if (connection != null) {
+            return connection.getUpdateMode();
+        }
+
+        return SimaticUpdateMode.OnChange;
     }
 }
