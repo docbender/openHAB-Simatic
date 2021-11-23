@@ -149,9 +149,7 @@ public class SimaticTCP extends SimaticGenericDevice {
             tryReconnect.set(true);
             return false;
         } finally {
-            if (!isConnected()) {
-                reconnectWithDelaying();
-            }
+
         }
 
         return true;
@@ -325,7 +323,10 @@ public class SimaticTCP extends SimaticGenericDevice {
             }
         }
 
-        long response = System.currentTimeMillis() - startTime;
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} - Reading finished in {}ms. Area={}", toString(), System.currentTimeMillis() - startTime,
+                    area.toString());
+        }
         // get data for all items in area
         for (SimaticChannel item : area.getItems()) {
             // send value into openHAB

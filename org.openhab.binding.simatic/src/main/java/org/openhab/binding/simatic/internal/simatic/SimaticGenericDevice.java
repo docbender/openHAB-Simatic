@@ -89,9 +89,9 @@ public class SimaticGenericDevice implements SimaticIDevice {
     }
 
     private @Nullable ScheduledFuture<?> periodicJob = null;
-    private @Nullable ScheduledFuture<?> reconnectJob = null;
 
     private final AtomicBoolean reconnecting = new AtomicBoolean(false);
+    private long lastExecution = 0;
 
     /**
      * Constructor
@@ -102,16 +102,16 @@ public class SimaticGenericDevice implements SimaticIDevice {
         this.updateMode = updateMode;
         if (pollRate > 0) {
             periodicJob = scheduler.scheduleAtFixedRate(() -> {
-                if (!reconnecting.get()) {
+                if (System.currentTimeMillis() - lastExecution >= pollRate) {
+                    lastExecution = System.currentTimeMillis();
                     execute();
                 }
             }, 500, pollRate, TimeUnit.MILLISECONDS);
         } else {
             scheduler.execute(() -> {
                 while (!disposed) {
+                    execute();
                     if (!reconnecting.get()) {
-                        execute();
-                    } else {
                         try {
                             Thread.sleep(500);
                         } catch (InterruptedException e) {
@@ -134,10 +134,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
             periodicJob.cancel(true);
             periodicJob = null;
         }
-        if (reconnectJob != null) {
-            reconnectJob.cancel(true);
-            reconnectJob = null;
-        }
     }
 
     /**
@@ -147,7 +143,9 @@ public class SimaticGenericDevice implements SimaticIDevice {
         if (shouldReconnect()) {
             reconnectWithDelaying();
         }
-        checkNewData();
+        if (!reconnecting.get()) {
+            checkNewData();
+        }
     }
 
     @Override
@@ -225,44 +223,30 @@ public class SimaticGenericDevice implements SimaticIDevice {
      * Reconnect device
      */
     protected void reconnectWithDelaying() {
-        if (!reconnecting.compareAndSet(false, true)) {
-            logger.debug("{} - reconnectJob(): already running", toString());
+        if (reconnecting.compareAndSet(false, true)) {
+            logger.debug("{} - reconnectJob(): started...", toString());
+        }
+
+        logger.debug("{} - reconnectJob(): {}/{}/{}", toString(), rcTest, rcTestMax, RECONNECT_DELAY_MAX);
+
+        if (rcTest < rcTestMax) {
+            rcTest++;
             return;
         }
 
-        if (reconnectJob != null) {
-            logger.debug("{} - reconnectJob(): canceling previous instance", toString());
-            reconnectJob.cancel(true);
-            reconnectJob = null;
+        logger.debug("{} - reconnectJob(): reconnecting...", toString());
+        if (reconnect()) {
+            rcTest = 0;
+            rcTestMax = 0;
+
+            logger.debug("{} - reconnectJob(): reconnected", toString());
+            reconnecting.set(false);
+        } else {
+            if (rcTestMax < RECONNECT_DELAY_MAX) {
+                rcTestMax++;
+            }
+            rcTest = 0;
         }
-
-        logger.debug("{} - reconnectJob(): create", toString());
-
-        reconnectJob = scheduler.scheduleAtFixedRate(() -> {
-            logger.debug("{} - reconnectJob(): {}/{}/{}", toString(), rcTest, rcTestMax, RECONNECT_DELAY_MAX);
-
-            if (rcTest < rcTestMax) {
-                rcTest++;
-                return;
-            }
-
-            if (reconnect()) {
-                rcTest = 0;
-                rcTestMax = 0;
-
-                logger.debug("{} - reconnectJob(): reconnected", toString());
-                if (reconnectJob.cancel(false)) {
-                    reconnectJob = null;
-                    logger.debug("{} - reconnectJob(): canceled", toString());
-                    reconnecting.set(false);
-                }
-            } else {
-                if (rcTestMax <= RECONNECT_DELAY_MAX) {
-                    rcTestMax++;
-                }
-                rcTest = 0;
-            }
-        }, 1000, 1000, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -428,12 +412,6 @@ public class SimaticGenericDevice implements SimaticIDevice {
 
                 readed++;
                 readedBytes += area.getAddressSpaceLength();
-
-                /*
-                 * if (logger.isDebugEnabled()) {
-                 * logger.debug("{} - Reading finished. Area={}", toString(), area.toString());
-                 * }
-                 */
             }
         } catch (Exception ex) {
             logger.error("{} - Read data error", toString(), ex);
