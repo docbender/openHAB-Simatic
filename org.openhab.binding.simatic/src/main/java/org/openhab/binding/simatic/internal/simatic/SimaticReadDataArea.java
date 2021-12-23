@@ -20,7 +20,7 @@ import org.openhab.binding.simatic.internal.libnodave.Nodave;
  */
 public class SimaticReadDataArea implements SimaticIReadWriteDataArea {
     /** Maximum space between two useful data block **/
-    public static final int GAP_LIMIT = 32;
+    public static final int GAP_LIMIT = 128;
 
     final LinkedList<SimaticChannel> items = new LinkedList<SimaticChannel>();
     final SimaticPLCAddress startAddress;

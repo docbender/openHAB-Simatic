@@ -36,9 +36,12 @@ public class SimaticTCP200 extends SimaticTCP {
      * @param slot
      * @param charset
      * @param pollRate
+     * @param charset
+     * @param updateMode
      */
-    public SimaticTCP200(String address, int rack, int slot, int pollRate, Charset charset) {
-        super(address, rack, slot, pollRate, charset);
+    public SimaticTCP200(String address, int rack, int slot, int pollRate, Charset charset,
+            SimaticUpdateMode updateMode) {
+        super(address, rack, slot, pollRate, charset, updateMode);
     }
 
     /**
@@ -82,9 +85,7 @@ public class SimaticTCP200 extends SimaticTCP {
             tryReconnect.set(true);
             return false;
         } finally {
-            if (shouldReconnect()) {
-                reconnectWithDelaying();
-            }
+
         }
 
         return true;

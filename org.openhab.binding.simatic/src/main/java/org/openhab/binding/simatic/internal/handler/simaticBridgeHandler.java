@@ -24,6 +24,7 @@ import org.openhab.binding.simatic.internal.simatic.SimaticChannel;
 import org.openhab.binding.simatic.internal.simatic.SimaticGenericDevice;
 import org.openhab.binding.simatic.internal.simatic.SimaticTCP;
 import org.openhab.binding.simatic.internal.simatic.SimaticTCP200;
+import org.openhab.binding.simatic.internal.simatic.SimaticUpdateMode;
 import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.library.types.QuantityType;
 import org.openhab.core.library.types.StringType;
@@ -96,9 +97,10 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
         config = getConfigAs(SimaticBridgeConfiguration.class);
 
-        logger.debug("{} - Bridge configuration: Host/IP={},Rack={},Slot={},Comm={},Is200={},Charset={},PollRate={}",
+        logger.debug(
+                "{} - Bridge configuration: Host/IP={},Rack={},Slot={},Comm={},Is200={},Charset={},PollRate={},Mode={}",
                 getThing().getLabel(), config.address, config.rack, config.slot, config.communicationType,
-                config.isS7200, config.charset, config.pollRate);
+                config.isS7200, config.charset, config.pollRate, config.updateMode);
 
         // configuration validation
         boolean valid = true;
@@ -106,34 +108,43 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         if (config.address == null || config.address.isBlank()) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "No Host/IP address");
             valid = false;
-            return;
         }
 
-        if (config.rack < 0 || config.rack > 2) {
+        if (valid && (config.rack < 0 || config.rack > 2)) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
                     "Invalid Rack number. Valid is 0-2.");
             valid = false;
-            return;
         }
 
-        if (config.slot < 0 || config.slot > 15) {
+        if (valid && (config.slot < 0 || config.slot > 15)) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
                     "Invalid Slot number. Valid is 0-15.");
             valid = false;
-            return;
         }
 
-        if (config.communicationType == null || !(config.communicationType.equals("S7")
-                || config.communicationType.equals("PG") || config.communicationType.equals("OP"))) {
+        if (valid && (config.communicationType == null || !(config.communicationType.equals("S7")
+                || config.communicationType.equals("PG") || config.communicationType.equals("OP")))) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "Invalid communication type.");
             valid = false;
-            return;
         }
 
         if (config.pollRate <= 0) {
             logger.warn(
                     "{} - poll rate is set to 0. That means new data will be read immediately after previous one will be finished.",
                     getThing().getLabel());
+        }
+
+        if (valid && (config.updateMode == null || !SimaticUpdateMode.validate(config.updateMode))) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "Invalid value update mode.");
+            valid = false;
+        }
+
+        if (!valid) {
+            // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR);
+            logger.error("{} - Bridge configuration is invalid. Host/IP={},Rack={},Slot={},Comm={},Is200={},Mode={}",
+                    getThing().getLabel(), config.address, config.rack, config.slot, config.communicationType,
+                    config.isS7200, config.updateMode);
+            return;
         }
 
         Charset charset;
@@ -149,19 +160,13 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
         logger.info("{} - Current charset {}", getThing().getLabel(), charset.name());
 
-        if (!valid) {
-            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR);
-            logger.error("{} - Bridge configuration is invalid. Host/IP={},Rack={},Slot={},Comm={},Is200={}",
-                    getThing().getLabel(), config.address, config.rack, config.slot, config.communicationType,
-                    config.isS7200);
-        }
-
         // S7-200 PLC
         if (config.isS7200) {
-            connection = new SimaticTCP200(config.address, config.rack, config.slot, config.pollRate, charset);
+            connection = new SimaticTCP200(config.address, config.rack, config.slot, config.pollRate, charset,
+                    SimaticUpdateMode.fromString(config.updateMode));
         } else {
             connection = new SimaticTCP(config.address, config.rack, config.slot, config.communicationType,
-                    config.pollRate, charset);
+                    config.pollRate, charset, SimaticUpdateMode.fromString(config.updateMode));
         }
 
         // react on connection changes
