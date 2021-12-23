@@ -14,3 +14,5 @@ More about this can be found on wiki page: https://github.com/docbender/openHAB-
 Compiled binding is inserted into release branch: https://github.com/docbender/openHAB-Simatic/releases
 
 Binding is compatible with openHAB 3.0. For previous openHAB versions (1.8 and 2.x) see oh1.8 branch.
+
+Simatic is a registered trademark of Siemens AG.
