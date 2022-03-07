@@ -174,8 +174,8 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         // react on connection changes
         connection.onConnectionChanged((connected) -> {
             if (connected) {
-                updateState(chPduSize, new DecimalType(connection.getPduSize()));
-                updateState(chAreasCount, new DecimalType(connection.getReadAreas().size()));
+                updateState(chPduSize, new DecimalType((Number) connection.getPduSize()));
+                updateState(chAreasCount, new DecimalType((Number) connection.getReadAreas().size()));
                 updateState(chAreas, new StringType(
                         (connection.getReadAreas().size() == 0) ? "none" : connection.getReadAreas().toString()));
 
@@ -186,8 +186,8 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         });
 
         connection.onMetricsUpdated((requests, bytes) -> {
-            updateState(chRequests, new DecimalType(requests));
-            updateState(chBytes, new DecimalType(bytes));
+            updateState(chRequests, new DecimalType((Number) requests));
+            updateState(chBytes, new DecimalType((Number) bytes));
         });
 
         // temporarily status
@@ -241,10 +241,10 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
                 }
             } else if (channelUID.equals(chAreasCount)) {
                 if (connection != null && connection.isConnected()) {
-                    updateState(chAreasCount, new DecimalType(connection.getReadAreas().size()));
+                    updateState(chAreasCount, new DecimalType((Number) connection.getReadAreas().size()));
                 }
             } else if (channelUID.equals(chTagCount)) {
-                updateState(channelUID, new DecimalType(channelCount));
+                updateState(channelUID, new DecimalType((Number) channelCount));
             }
         }
     }
@@ -293,13 +293,13 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
             c.setDataAreas(stateItems);
 
             if (c.isConnected()) {
-                updateState(chAreasCount, new DecimalType(c.getReadAreas().size()));
+                updateState(chAreasCount, new DecimalType((Number) c.getReadAreas().size()));
                 updateState(chAreas,
                         new StringType((c.getReadAreas().size() == 0) ? "none" : c.getReadAreas().toString()));
             }
         }
 
-        updateState(chTagCount, new DecimalType(channelCount));
+        updateState(chTagCount, new DecimalType((Number) channelCount));
 
         logger.debug("{} - updating {} channels({} read)", getThing().getLabel(), channelCount, stateChannelCount);
     }
