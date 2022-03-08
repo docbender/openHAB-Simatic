@@ -14,6 +14,7 @@ package org.openhab.binding.simatic.internal.handler;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
@@ -49,7 +50,6 @@ import org.slf4j.LoggerFactory;
  */
 @NonNullByDefault
 public class SimaticBridgeHandler extends BaseBridgeHandler {
-
     private final Logger logger = LoggerFactory.getLogger(SimaticBridgeHandler.class);
 
     private @Nullable SimaticBridgeConfiguration config;
@@ -60,6 +60,8 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
     private @Nullable ChannelUID chVersion, chPduSize, chAreasCount, chAreas, chTagCount, chRequests, chBytes;
 
     private int channelCount = 0;
+    /** Initial scheduler delay */
+    private static final long INIT_SECONDS = 5;
 
     /**
      * Constructor
@@ -192,11 +194,11 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         updateStatus(ThingStatus.UNKNOWN);
 
         // background initialization
-        scheduler.execute(() -> {
+        scheduler.schedule(() -> {
             if (!connection.open()) {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR);
             }
-        });
+        }, INIT_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override
