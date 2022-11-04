@@ -114,6 +114,13 @@ public class SimaticGenericHandler extends BaseThingHandler {
         channels.clear();
         connection = null;
         logger.debug("{} - device dispose", getThing().getLabel());
+
+        // update configuration after disposing of the Thing
+        var bridge = getBridge();
+        BridgeHandler handler;
+        if (bridge != null && (handler = bridge.getHandler()) != null) {
+            ((SimaticBridgeHandler) handler).updateConfig();
+        }
     }
 
     /**
