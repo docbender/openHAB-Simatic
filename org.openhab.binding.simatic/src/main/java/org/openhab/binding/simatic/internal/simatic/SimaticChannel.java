@@ -394,8 +394,7 @@ public class SimaticChannel {
                 setState(new StringType(str));
             } else if (isNumber()) {
                 if (getStateAddress().isFloat()) {
-                    setState(hasUnit() ? new QuantityType<>(bb.getFloat(), getUnit())
-                            : new DecimalType((Number) bb.getFloat()));
+                    setState(hasUnit() ? new QuantityType<>(bb.getFloat(), getUnit()) : new DecimalType(bb.getFloat()));
                 } else {
                     final int intValue;
                     if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
@@ -410,7 +409,7 @@ public class SimaticChannel {
                         intValue = 0;
                     }
 
-                    setState(hasUnit() ? new QuantityType<>(intValue, getUnit()) : new DecimalType((Number) intValue));
+                    setState(hasUnit() ? new QuantityType<>(intValue, getUnit()) : new DecimalType(intValue));
                 }
             } else if (isDimmer()) {
                 setState(new PercentType(bb.get()));
