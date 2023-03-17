@@ -62,16 +62,16 @@
 				<default>false</default>
 				<advanced>true</advanced>
 			</parameter>
-            <parameter name="updateMode" type="text">
-                <label>Value update mode</label>
-                <description>Update read value can be OnChange or Poll. In OnChange mode only changed values are sent into OH core (default). In Poll mode every value is sent into OH core (more CPU intensive).</description>
-                <options>
-                    <option value="OnChange">OnChange</option>
-                    <option value="Poll">Poll</option>
-                </options>
-                <default>OnChange</default>
-                <advanced>true</advanced>
-            </parameter>			
+			<parameter name="updateMode" type="text">
+				<label>Value update mode</label>
+				<description>Update read value can be OnChange or Poll. In OnChange mode only changed values are sent into OH core (default). In Poll mode every value is sent into OH core (more CPU intensive).</description>
+				<options>
+					<option value="OnChange">OnChange</option>
+					<option value="Poll">Poll</option>
+				</options>
+				<default>OnChange</default>
+				<advanced>true</advanced>
+			</parameter>
 		</config-description>
 	</bridge-type>
 
