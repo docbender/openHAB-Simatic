@@ -16,7 +16,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.simatic.internal.SimaticBindingConstants;
@@ -27,9 +26,6 @@ import org.openhab.binding.simatic.internal.simatic.SimaticTCP;
 import org.openhab.binding.simatic.internal.simatic.SimaticTCP200;
 import org.openhab.binding.simatic.internal.simatic.SimaticUpdateMode;
 import org.openhab.core.library.types.DecimalType;
-import org.openhab.core.library.types.QuantityType;
-import org.openhab.core.library.types.StringType;
-import org.openhab.core.library.unit.Units;
 import org.openhab.core.thing.Bridge;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
@@ -57,7 +53,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
     public @Nullable SimaticGenericDevice connection = null;
 
     // bridge channels
-    private @Nullable ChannelUID chVersion, chPduSize, chAreasCount, chAreas, chTagCount, chRequests, chBytes;
+    private @Nullable ChannelUID chTagCount, chRequests, chBytes;
 
     private int channelCount = 0;
     /** Initial scheduler delay */
@@ -74,15 +70,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
         // retrieve bridge channels
         getThing().getChannels().forEach((channel) -> {
-            if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_VERSION)) {
-                chVersion = channel.getUID();
-            } else if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_PDU_SIZE)) {
-                chPduSize = channel.getUID();
-            } else if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_AREAS_COUNT)) {
-                chAreasCount = channel.getUID();
-            } else if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_AREAS)) {
-                chAreas = channel.getUID();
-            } else if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_TAG_COUNT)) {
+            if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_TAG_COUNT)) {
                 chTagCount = channel.getUID();
             } else if (channel.getChannelTypeUID().equals(SimaticBindingConstants.CHANNEL_TYPE_REQUESTS)) {
                 chRequests = channel.getUID();
@@ -95,7 +83,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
     @SuppressWarnings("null")
     @Override
     public void initialize() {
-        updateState(chVersion, new StringType(SimaticBindingConstants.VERSION));
+        updateProperty(SimaticBindingConstants.PROPERTY_VERSION, SimaticBindingConstants.VERSION);
 
         config = getConfigAs(SimaticBridgeConfiguration.class);
 
@@ -174,10 +162,11 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         // react on connection changes
         connection.onConnectionChanged((connected) -> {
             if (connected) {
-                updateState(chPduSize, new DecimalType((Number) connection.getPduSize()));
-                updateState(chAreasCount, new DecimalType((Number) connection.getReadAreas().size()));
-                updateState(chAreas, new StringType(
-                        (connection.getReadAreas().size() == 0) ? "none" : connection.getReadAreas().toString()));
+                updateProperty(SimaticBindingConstants.PROPERTY_PDU, String.valueOf(connection.getPduSize()));
+                updateProperty(SimaticBindingConstants.PROPERTY_AREAS_COUNT,
+                        String.valueOf(connection.getReadAreas().size()));
+                updateProperty(SimaticBindingConstants.PROPERTY_AREAS,
+                        (connection.getReadAreas().size() == 0) ? "none" : connection.getReadAreas().toString());
 
                 updateStatus(ThingStatus.ONLINE);
             } else {
@@ -186,8 +175,8 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         });
 
         connection.onMetricsUpdated((requests, bytes) -> {
-            updateState(chRequests, new DecimalType((Number) requests));
-            updateState(chBytes, new DecimalType((Number) bytes));
+            updateState(chRequests, new DecimalType(requests));
+            updateState(chBytes, new DecimalType(bytes));
         });
 
         // temporarily status
@@ -221,30 +210,14 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         logger.debug("{} - bridge has been stopped", getThing().getLabel());
     }
 
-    @SuppressWarnings("null")
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         logger.debug("{} - Command {} for channel {}", thing.getLabel(), command, channelUID);
 
         // get cached values
         if (command instanceof RefreshType) {
-            if (channelUID.equals(chVersion)) {
-                updateState(channelUID, new StringType(SimaticBindingConstants.VERSION));
-            } else if (channelUID.equals(chPduSize)) {
-                if (connection != null && connection.isConnected()) {
-                    updateState(chPduSize, new QuantityType<>(connection.getPduSize(), Units.BYTE));
-                }
-            } else if (channelUID.equals(chAreas)) {
-                if (connection != null && connection.isConnected()) {
-                    updateState(chAreas, new StringType(
-                            (connection.getReadAreas().size() == 0) ? "none" : connection.getReadAreas().toString()));
-                }
-            } else if (channelUID.equals(chAreasCount)) {
-                if (connection != null && connection.isConnected()) {
-                    updateState(chAreasCount, new DecimalType((Number) connection.getReadAreas().size()));
-                }
-            } else if (channelUID.equals(chTagCount)) {
-                updateState(channelUID, new DecimalType((Number) channelCount));
+            if (channelUID.equals(chTagCount)) {
+                updateState(channelUID, new DecimalType(channelCount));
             }
         }
     }
@@ -274,7 +247,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
             }
         }
 
-        var stateItems = new ArrayList<@NonNull SimaticChannel>(stateChannelCount);
+        var stateItems = new ArrayList<SimaticChannel>(stateChannelCount);
 
         for (Thing th : getThing().getThings()) {
             var h = ((SimaticGenericHandler) th.getHandler());
@@ -291,15 +264,9 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
         if (connection != null) {
             var c = connection;
             c.setDataAreas(stateItems);
-
-            if (c.isConnected()) {
-                updateState(chAreasCount, new DecimalType((Number) c.getReadAreas().size()));
-                updateState(chAreas,
-                        new StringType((c.getReadAreas().size() == 0) ? "none" : c.getReadAreas().toString()));
-            }
         }
 
-        updateState(chTagCount, new DecimalType((Number) channelCount));
+        updateState(chTagCount, new DecimalType(channelCount));
 
         logger.debug("{} - updating {} channels({} read)", getThing().getLabel(), channelCount, stateChannelCount);
     }

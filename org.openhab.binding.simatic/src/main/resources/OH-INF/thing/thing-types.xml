@@ -8,14 +8,17 @@
 		<label>Simatic Bridge</label>
 		<description>Represent single PLC or more exactly its connection, which uses individual things.</description>
 		<channels>
-			<channel id="Version" typeId="chVersionTypeID"/>
-			<channel id="Pdu" typeId="chPduTypeID"/>
-			<channel id="AreasCount" typeId="chAreasCountTypeID"/>
-			<channel id="Areas" typeId="chAreasTypeID"/>
 			<channel id="TagCount" typeId="chTagCountTypeID"/>
 			<channel id="Requests" typeId="chRequestsTypeID"/>
 			<channel id="Bytes" typeId="chBytesTypeID"/>
 		</channels>
+		<properties>
+			<property name="version">4.0</property>
+			<property name="vendor">Siemens</property>
+			<property name="pdu">Unknown</property>
+			<property name="areasCount">Unknown</property>
+			<property name="areas">Unknown</property>
+		</properties>
 		<config-description>
 			<parameter name="address" type="text" required="true">
 				<label>PLC IP/Host address</label>
@@ -87,18 +90,6 @@
 
 	<!-- Channels -->
 	<!-- Bridge Channels -->
-	<channel-type id="chVersionTypeID">
-		<item-type>String</item-type>
-		<label>Version</label>
-		<description>Binding version</description>
-		<state readOnly="true"/>
-	</channel-type>
-	<channel-type id="chPduTypeID">
-		<item-type>Number</item-type>
-		<label>PDU size</label>
-		<description>Negotiated PDU size</description>
-		<state pattern="%d B" readOnly="true"/>
-	</channel-type>
 	<channel-type id="chAreasCountTypeID">
 		<item-type>Number</item-type>
 		<label>Areas count</label>
