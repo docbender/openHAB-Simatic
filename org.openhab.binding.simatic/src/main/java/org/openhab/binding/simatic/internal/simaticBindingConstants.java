@@ -39,10 +39,19 @@ public class SimaticBindingConstants {
     public static final String CHANNEL_BYTES = "chBytesTypeID";
 
     // List of all Property IDs
-    public static final String PROPERTY_VERSION = "version";
+    public static final String PROPERTY_BINDING_VERSION = "bindingVersion";
     public static final String PROPERTY_PDU = "pdu";
     public static final String PROPERTY_AREAS_COUNT = "areasCount";
     public static final String PROPERTY_AREAS = "areas";
+    public static final String PROPERTY_PLC_NAME = "plcName";
+    public static final String PROPERTY_MODULE_NAME = "moduleName";
+    public static final String PROPERTY_MODULE_NAME_TYPE = "moduleNameType";
+    public static final String PROPERTY_COPYRIGHT = "copyright";
+    public static final String PROPERTY_SERIAL = "serialNumber";
+    public static final String PROPERTY_ORDER_NUMBER = "orderNumber";
+    public static final String PROPERTY_HW_VERSION = "hardwareVersion";
+    public static final String PROPERTY_FW_VERSION = "firmwareVersion";
+    public static final String PROPERTY_MEMORY_SIZE = "workingMemorySize";
 
     // List of all Channel Type UIDs
     public static final ChannelTypeUID CHANNEL_TYPE_TAG_COUNT = new ChannelTypeUID(BINDING_ID, CHANNEL_TAG_COUNT);

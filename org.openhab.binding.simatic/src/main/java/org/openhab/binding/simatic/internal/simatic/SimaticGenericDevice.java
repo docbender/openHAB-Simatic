@@ -67,6 +67,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     protected final AtomicBoolean tryReconnect = new AtomicBoolean(false);
     /** PDU size **/
     protected int pduSize = 0;
+    public final SimaticDeviceInfo info = new SimaticDeviceInfo();
     protected final Charset charset;
     protected final SimaticUpdateMode updateMode;
 

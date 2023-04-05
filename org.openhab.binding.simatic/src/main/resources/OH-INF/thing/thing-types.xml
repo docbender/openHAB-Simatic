@@ -13,11 +13,11 @@
 			<channel id="Bytes" typeId="chBytesTypeID"/>
 		</channels>
 		<properties>
-			<property name="version">4.0</property>
+			<property name="bindingVersion">-</property>
 			<property name="vendor">Siemens</property>
-			<property name="pdu">Unknown</property>
-			<property name="areasCount">Unknown</property>
-			<property name="areas">Unknown</property>
+			<property name="pdu">-</property>
+			<property name="areasCount">-</property>
+			<property name="areas">-</property>
 		</properties>
 		<config-description>
 			<parameter name="address" type="text" required="true">
