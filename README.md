@@ -2,7 +2,7 @@
 
 This binding for openHAB has ability to connect Simatic PLC over Ethernet with isoTCP. So it should be possible to connect to the Simatic PLC S7-300, S7-400, S7-1200 and S7-1500 series. 
 
-[![openHAB](/.github/openHAB30.svg)](https://github.com/openhab)
+[![openHAB](/.github/openHAB40.svg)](https://github.com/openhab)
 [![Version](https://img.shields.io/github/v/release/docbender/openHAB-Simatic?include_prereleases)](https://github.com/docbender/openHAB-Simatic/releases)
 [![Download](https://img.shields.io/github/downloads/docbender/openHAB-Simatic/total.svg)](https://github.com/docbender/openHAB-Simatic/releases)
 [![Issues](https://img.shields.io/github/issues/docbender/openHAB-Simatic)](https://github.com/docbender/openHAB-Simatic/issues)
