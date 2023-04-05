@@ -83,7 +83,7 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
     @SuppressWarnings("null")
     @Override
     public void initialize() {
-        updateProperty(SimaticBindingConstants.PROPERTY_VERSION, SimaticBindingConstants.VERSION);
+        updateProperty(SimaticBindingConstants.PROPERTY_BINDING_VERSION, SimaticBindingConstants.VERSION);
 
         config = getConfigAs(SimaticBridgeConfiguration.class);
 
@@ -167,6 +167,34 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
                         String.valueOf(connection.getReadAreas().size()));
                 updateProperty(SimaticBindingConstants.PROPERTY_AREAS,
                         (connection.getReadAreas().size() == 0) ? "none" : connection.getReadAreas().toString());
+                if (connection.info.getPlcName() != null) {
+                    updateProperty(SimaticBindingConstants.PROPERTY_PLC_NAME, connection.info.getPlcName());
+                }
+                if (connection.info.getModuleName() != null) {
+                    updateProperty(SimaticBindingConstants.PROPERTY_MODULE_NAME, connection.info.getModuleName());
+                }
+                if (connection.info.getModuleTypeName() != null) {
+                    updateProperty(SimaticBindingConstants.PROPERTY_MODULE_NAME_TYPE,
+                            connection.info.getModuleTypeName());
+                }
+                if (connection.info.getCopyright() != null) {
+                    updateProperty(SimaticBindingConstants.PROPERTY_COPYRIGHT, connection.info.getCopyright());
+                }
+                if (connection.info.getSerialNumber() != null) {
+                    updateProperty(SimaticBindingConstants.PROPERTY_SERIAL, connection.info.getSerialNumber());
+                }
+                if (connection.info.getOrderNr() != null) {
+                    updateProperty(SimaticBindingConstants.PROPERTY_ORDER_NUMBER, connection.info.getOrderNr());
+                }
+                if (connection.info.getHwVersion() != null) {
+                    updateProperty(SimaticBindingConstants.PROPERTY_HW_VERSION, connection.info.getHwVersion());
+                }
+                if (connection.info.getFwVersion() != null) {
+                    updateProperty(SimaticBindingConstants.PROPERTY_FW_VERSION, connection.info.getFwVersion());
+                }
+                if (connection.info.getMemorySize() != null) {
+                    updateProperty(SimaticBindingConstants.PROPERTY_MEMORY_SIZE, connection.info.getMemorySize());
+                }
 
                 updateStatus(ThingStatus.ONLINE);
             } else {
