@@ -512,4 +512,257 @@ public abstract class S7Connection {
         disconnectPLC();
         iface.finalize();
     }
+
+    public class S7SZL {
+        public int LENTHDR;
+        public int N_DR;
+        public byte[] Data;
+        public int Size;
+
+        public S7SZL(int size) {
+            Data = new byte[size];
+            Size = size;
+        }
+    }
+
+    public class S7CpuInfo {
+        public String ModuleTypeName;
+        public String SerialNumber;
+        public String PlcName;
+        public String Copyright;
+        public String ModuleName;
+    }
+
+    public class S7ModuleInfo {
+        public String OrderNr;
+        public String HwOrderNr;
+        public String HwVersion;
+        public String FwVersion;
+    }
+
+    public class S7MemoryInfo {
+        public long Size;
+    }
+
+    /**
+     * Read SSL from Simatic
+     *
+     * @param ID
+     * @param Index
+     * @param SZL
+     * @return
+     * @throws IOException
+     */
+    private int ReadSZL(int ID, int Index, S7SZL SZL) throws IOException {
+        int DataSZL;
+        int Offset = 0;
+        boolean Done = false;
+        boolean First = true;
+        byte Seq_in = 0;
+        byte Seq_out = 0;
+        int dataSize = 0;
+        SZL.LENTHDR = 0;
+        int res;
+
+        do {
+            PDU p = new PDU(msgOut, PDUstartOut);
+            p.initHeader(7);
+
+            if (First) {
+                byte parameters[] = { 0x00, 0x01, 0x12, 0x04, 0x11, 0x44, 0x01, 0x00 };
+                byte data[] = { (byte) 0xff, 0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00 };
+                Nodave.setUSByte(parameters, 7, Seq_out);
+                Nodave.setUSBEWord(data, 4, ID);
+                Nodave.setUSBEWord(data, 6, Index);
+                p.addParam(parameters);
+                p.addData(data);
+            } else {
+                byte parameters[] = { 0x00, 0x01, 0x12, 0x08, 0x12, 0x44, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00 };
+                byte data[] = { 0x0a, 0x00, 0x00, 0x00 };
+                Nodave.setUSByte(parameters, 7, ++Seq_out);
+                p.addParam(parameters);
+                p.addData(data);
+            }
+
+            res = exchange(p);
+            if (res != 0) {
+                return res;// Nodave.RESULT_UNKNOWN_ERROR;
+            }
+
+            PDU p2 = new PDU(msgIn, PDUstartIn);
+            res = p2.setupReceivedPDU();
+            if (res != 0) {
+                return res;
+            }
+
+            // sequence number
+            Seq_in = msgIn[24];
+            // last data unit = 0x0
+            Done = msgIn[26] == 0;
+
+            var errorCode = Nodave.USBEWord(msgIn, p2.param + 10);
+            byte returnCode = msgIn[p2.data];
+
+            // no success
+            if (errorCode == 0 && returnCode != (byte) 0xFF) {
+                return Nodave.RESULT_UNKNOWN_ERROR;
+                // SZL not supported
+            } else if (errorCode == 0xd401) {
+                return Nodave.RESULT_ITEM_NOT_AVAILABLE;
+            } else if (errorCode != 0) {
+                return errorCode;
+            }
+
+            if (First) {
+                SZL.LENTHDR = Nodave.USBEWord(msgIn, p2.data + 8);
+                SZL.N_DR = Nodave.USBEWord(msgIn, p2.data + 10);
+                // data length
+                DataSZL = Nodave.USBEWord(msgIn, p2.data + 2) - (12 - 2 - 2);
+                // copy data
+                System.arraycopy(msgIn, p2.data + 12, SZL.Data, Offset, DataSZL);
+            } else {
+                // data length
+                DataSZL = Nodave.USBEWord(msgIn, p2.data + 2);
+                // copy data
+                System.arraycopy(msgIn, p2.data + 8, SZL.Data, Offset, DataSZL);
+            }
+
+            Offset += DataSZL;
+            dataSize += DataSZL;
+            First = false;
+        } while (!Done);
+
+        return 0;
+    }
+
+    /**
+     * Retrieve CPU info
+     *
+     * @param Info
+     * @return
+     * @throws IOException
+     */
+    public int GetCpuInfo(S7CpuInfo Info) throws IOException {
+        S7SZL SZL = new S7SZL(1024);
+        int _LastError = ReadSZL(0x001C, 0x000, SZL);
+        if (_LastError != 0) {
+            return _LastError;
+        }
+
+        for (int i = 0; i < SZL.N_DR; i++) {
+            int id = Nodave.USBEWord(SZL.Data, i * SZL.LENTHDR);
+            var text = new String(SZL.Data, i * SZL.LENTHDR + 2, SZL.LENTHDR - 2).trim();
+
+            if (id == 1) {
+                Info.PlcName = text;
+            } else if (id == 2) {
+                Info.ModuleName = text;
+            } else if (id == 4) {
+                Info.Copyright = text;
+            } else if (id == 5) {
+                Info.SerialNumber = text;
+            } else if (id == 7) {
+                Info.ModuleTypeName = text;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Retrieve device module info
+     *
+     * @param Info
+     * @return
+     * @throws IOException
+     */
+    public int GetModuleInfo(S7ModuleInfo Info) throws IOException {
+        S7SZL SZL = new S7SZL(1024);
+        int _LastError = ReadSZL(0x0011, 0x000, SZL);
+        if (_LastError != 0) {
+            return _LastError;
+        }
+
+        for (int i = 0; i < SZL.N_DR; i++) {
+            int id = Nodave.USBEWord(SZL.Data, i * SZL.LENTHDR);
+            var orderNr = new String(SZL.Data, i * SZL.LENTHDR + 2, 20).trim();
+            var v1 = Nodave.USByte(SZL.Data, i * SZL.LENTHDR + 2 + 23);
+            var v2 = Nodave.USByte(SZL.Data, i * SZL.LENTHDR + 2 + 24);
+            var v3 = Nodave.USByte(SZL.Data, i * SZL.LENTHDR + 2 + 25);
+
+            String version = String.valueOf(v1);
+            if (v2 <= 9) {
+                version += "." + v2;
+            }
+            if (v3 <= 9) {
+                version += "." + v3;
+            }
+
+            // module
+            if (id == 1) {
+                Info.OrderNr = orderNr;
+                // HW
+            } else if (id == 6) {
+                Info.HwOrderNr = orderNr;
+                Info.HwVersion = version;
+                // FW
+            } else if (id == 7) {
+                Info.FwVersion = version;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Retrieve device memory info
+     *
+     * @param Info
+     * @return
+     * @throws IOException
+     */
+    public int GetMemoryInfo(S7MemoryInfo Info) throws IOException {
+        S7SZL SZL = new S7SZL(1024);
+        int _LastError = ReadSZL(0x0113, 0x01, SZL);
+        if (_LastError != 0) {
+            return _LastError;
+        }
+
+        for (int i = 0; i < SZL.N_DR; i++) {
+            int id = Nodave.USBEWord(SZL.Data, i * SZL.LENTHDR);
+            var size = Nodave.USBELong(SZL.Data, i * SZL.LENTHDR + 4);
+
+            if (id == 1) {
+                Info.Size = size;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Convert data array to string
+     *
+     * @param data
+     * @param length
+     * @return
+     */
+    private static String arrayToString(byte[] data, int length) {
+        StringBuilder s = new StringBuilder();
+
+        for (int i = 0; i < length; i++) {
+            byte b = data[i];
+            if (s.length() == 0) {
+                s.append("[");
+            } else {
+                s.append(" ");
+            }
+
+            // if(SimpleBinaryBinding.JavaVersion >= 1.8)
+            // s.append("0x" + Integer.toHexString(Byte.toUnsignedInt(b)).toUpperCase());
+            // else
+            s.append("0x" + Integer.toHexString(b & 0xFF).toUpperCase());
+        }
+
+        s.append("]");
+
+        return s.toString();
+    }
 }
