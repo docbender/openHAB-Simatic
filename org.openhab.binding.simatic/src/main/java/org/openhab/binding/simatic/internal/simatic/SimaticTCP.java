@@ -138,6 +138,8 @@ public class SimaticTCP extends SimaticGenericDevice {
                 portState.setState(PortStates.LISTENING);
                 // prepare data after PDU is negotiated
                 prepareData();
+                // request device info
+                info.getInfo(dc);
                 setConnected(true);
             } else {
                 logger.error("{} - cannot connect to PLC", this.toString());

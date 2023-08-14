@@ -175,7 +175,6 @@ public class TCPConnection extends S7Connection {
      */
     @Override
     public int connectPLC() throws IOException {
-        int res;
         byte[] b4 = { (byte) 0x11, (byte) 0xE0, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00,
                 (byte) 0xC1, (byte) 0x02, (byte) 0x01, (byte) 0x00, (byte) 0xC2, (byte) 0x02, (byte) 0x01, (byte) 0x02,
                 (byte) 0xC0, (byte) 0x01, (byte) 0x09 };
@@ -193,13 +192,7 @@ public class TCPConnection extends S7Connection {
         if ((Nodave.Debug & Nodave.DEBUG_CONNECT) != 0) {
             System.out.println("daveConnectPLC() step 1.");
         }
-        /*
-         * PDU p = new PDU(msgOut, 7);
-         * p.initHeader(1);
-         * p.addParam(b61);
-         * exchange(p);
-         * return (0);
-         */
+
         return negPDUlengthRequest();
     }
 }

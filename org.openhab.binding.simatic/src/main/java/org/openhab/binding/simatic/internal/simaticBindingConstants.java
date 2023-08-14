@@ -25,7 +25,7 @@ import org.openhab.core.thing.type.ChannelTypeUID;
 @NonNullByDefault
 public class SimaticBindingConstants {
 
-    public static final String VERSION = "3.3.0";
+    public static final String VERSION = "4.0.1";
 
     private static final String BINDING_ID = "simatic";
 
@@ -34,19 +34,26 @@ public class SimaticBindingConstants {
     public static final ThingTypeUID THING_TYPE_GENERIC = new ThingTypeUID(BINDING_ID, "generic_device");
 
     // List of all Bridge Channel ids
-    public static final String CHANNEL_VERSION = "chVersionTypeID";
-    public static final String CHANNEL_PDU_SIZE = "chPduTypeID";
-    public static final String CHANNEL_AREAS_COUNT = "chAreasCountTypeID";
-    public static final String CHANNEL_AREAS = "chAreasTypeID";
     public static final String CHANNEL_TAG_COUNT = "chTagCountTypeID";
     public static final String CHANNEL_REQUESTS = "chRequestsTypeID";
     public static final String CHANNEL_BYTES = "chBytesTypeID";
 
+    // List of all Property IDs
+    public static final String PROPERTY_BINDING_VERSION = "bindingVersion";
+    public static final String PROPERTY_PDU = "pdu";
+    public static final String PROPERTY_AREAS_COUNT = "areasCount";
+    public static final String PROPERTY_AREAS = "areas";
+    public static final String PROPERTY_PLC_NAME = "plcName";
+    public static final String PROPERTY_MODULE_NAME = "moduleName";
+    public static final String PROPERTY_MODULE_NAME_TYPE = "moduleNameType";
+    public static final String PROPERTY_COPYRIGHT = "copyright";
+    public static final String PROPERTY_SERIAL = "serialNumber";
+    public static final String PROPERTY_ORDER_NUMBER = "orderNumber";
+    public static final String PROPERTY_HW_VERSION = "hardwareVersion";
+    public static final String PROPERTY_FW_VERSION = "firmwareVersion";
+    public static final String PROPERTY_MEMORY_SIZE = "workingMemorySize";
+
     // List of all Channel Type UIDs
-    public static final ChannelTypeUID CHANNEL_TYPE_VERSION = new ChannelTypeUID(BINDING_ID, CHANNEL_VERSION);
-    public static final ChannelTypeUID CHANNEL_TYPE_PDU_SIZE = new ChannelTypeUID(BINDING_ID, CHANNEL_PDU_SIZE);
-    public static final ChannelTypeUID CHANNEL_TYPE_AREAS_COUNT = new ChannelTypeUID(BINDING_ID, CHANNEL_AREAS_COUNT);
-    public static final ChannelTypeUID CHANNEL_TYPE_AREAS = new ChannelTypeUID(BINDING_ID, CHANNEL_AREAS);
     public static final ChannelTypeUID CHANNEL_TYPE_TAG_COUNT = new ChannelTypeUID(BINDING_ID, CHANNEL_TAG_COUNT);
     public static final ChannelTypeUID CHANNEL_TYPE_REQUESTS = new ChannelTypeUID(BINDING_ID, CHANNEL_REQUESTS);
     public static final ChannelTypeUID CHANNEL_TYPE_BYTES = new ChannelTypeUID(BINDING_ID, CHANNEL_BYTES);

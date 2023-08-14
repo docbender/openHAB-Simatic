@@ -8,14 +8,17 @@
 		<label>Simatic Bridge</label>
 		<description>Represent single PLC or more exactly its connection, which uses individual things.</description>
 		<channels>
-			<channel id="ChannelVersion" typeId="chVersionTypeID"/>
-			<channel id="ChannelPdu" typeId="chPduTypeID"/>
-			<channel id="ChannelAreasCount" typeId="chAreasCountTypeID"/>
-			<channel id="ChannelAreas" typeId="chAreasTypeID"/>
-			<channel id="ChannelTagCount" typeId="chTagCountTypeID"/>
-			<channel id="ChannelRequests" typeId="chRequestsTypeID"/>
-			<channel id="ChannelBytes" typeId="chBytesTypeID"/>
+			<channel id="TagCount" typeId="chTagCountTypeID"/>
+			<channel id="Requests" typeId="chRequestsTypeID"/>
+			<channel id="Bytes" typeId="chBytesTypeID"/>
 		</channels>
+		<properties>
+			<property name="bindingVersion">-</property>
+			<property name="vendor">Siemens</property>
+			<property name="pdu">-</property>
+			<property name="areasCount">-</property>
+			<property name="areas">-</property>
+		</properties>
 		<config-description>
 			<parameter name="address" type="text" required="true">
 				<label>PLC IP/Host address</label>
@@ -62,16 +65,16 @@
 				<default>false</default>
 				<advanced>true</advanced>
 			</parameter>
-            <parameter name="updateMode" type="text">
-                <label>Value update mode</label>
-                <description>Update read value can be OnChange or Poll. In OnChange mode only changed values are sent into OH core (default). In Poll mode every value is sent into OH core (more CPU intensive).</description>
-                <options>
-                    <option value="OnChange">OnChange</option>
-                    <option value="Poll">Poll</option>
-                </options>
-                <default>OnChange</default>
-                <advanced>true</advanced>
-            </parameter>			
+			<parameter name="updateMode" type="text">
+				<label>Value update mode</label>
+				<description>Update read value can be OnChange or Poll. In OnChange mode only changed values are sent into OH core (default). In Poll mode every value is sent into OH core (more CPU intensive).</description>
+				<options>
+					<option value="OnChange">OnChange</option>
+					<option value="Poll">Poll</option>
+				</options>
+				<default>OnChange</default>
+				<advanced>true</advanced>
+			</parameter>
 		</config-description>
 	</bridge-type>
 
@@ -87,18 +90,6 @@
 
 	<!-- Channels -->
 	<!-- Bridge Channels -->
-	<channel-type id="chVersionTypeID">
-		<item-type>String</item-type>
-		<label>Version</label>
-		<description>Binding version</description>
-		<state readOnly="true"/>
-	</channel-type>
-	<channel-type id="chPduTypeID">
-		<item-type>Number</item-type>
-		<label>PDU size</label>
-		<description>Negotiated PDU size</description>
-		<state pattern="%d B" readOnly="true"/>
-	</channel-type>
 	<channel-type id="chAreasCountTypeID">
 		<item-type>Number</item-type>
 		<label>Areas count</label>
