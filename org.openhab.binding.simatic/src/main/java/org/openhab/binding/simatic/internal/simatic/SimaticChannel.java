@@ -385,8 +385,8 @@ public class SimaticChannel {
             if (isString()) {
                 // check for '\0' char and resolve string length
                 int i;
-                for (i = position; i < getStateAddress().getDataLength(); i++) {
-                    if (buffer[i] == 0) {
+                for (i = 0; i < getStateAddress().getDataLength(); i++) {
+                    if (buffer[position + i] == 0) {
                         break;
                     }
                 }
