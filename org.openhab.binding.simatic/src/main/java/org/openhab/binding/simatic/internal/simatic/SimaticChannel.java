@@ -371,39 +371,39 @@ public class SimaticChannel {
      * @param position Data start position in buffer
      */
     public void setState(byte[] buffer, int start) {
-        // logger.debug("item={}", toString());
-        // logger.debug("buffer={}", buffer.length);
-        // logger.debug("position={}", position);
-        // logger.debug("item len={}", getStateAddress().getDataLength());
+        SimaticPLCAddress stateAddress = getStateAddress();
 
-        int position = getStateAddress().getByteOffset() - start;
+        if(stateAddress==null)
+            return;
+
+        int position = stateAddress.getByteOffset() - start;
 
         try {
-            ByteBuffer bb = ByteBuffer.wrap(buffer, position, getStateAddress().getDataLength());
+            ByteBuffer bb = ByteBuffer.wrap(buffer, position, stateAddress.getDataLength());
             bb.order(ByteOrder.BIG_ENDIAN);
 
             if (isString()) {
                 // check for '\0' char and resolve string length
                 int i;
-                for (i = position; i < getStateAddress().getDataLength(); i++) {
-                    if (buffer[i] == 0) {
+                for (i = 0; i < stateAddress.getDataLength(); i++) {
+                    if (buffer[position + i] == 0) {
                         break;
                     }
                 }
                 String str = new String(buffer, position, i, thing.getCharset());
                 setState(new StringType(str));
             } else if (isNumber()) {
-                if (getStateAddress().isFloat()) {
+                if (stateAddress.isFloat()) {
                     setState(hasUnit() ? new QuantityType<>(bb.getFloat(), getUnit()) : new DecimalType(bb.getFloat()));
                 } else {
                     final int intValue;
-                    if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
-                        intValue = (bb.get() & (int) Math.pow(2, getStateAddress().getBitOffset())) != 0 ? 1 : 0;
-                    } else if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BYTE) {
+                    if (stateAddress.getSimaticDataType() == SimaticPLCDataTypes.BIT) {
+                        intValue = (bb.get() & (int) Math.pow(2, stateAddress.getBitOffset())) != 0 ? 1 : 0;
+                    } else if (stateAddress.getSimaticDataType() == SimaticPLCDataTypes.BYTE) {
                         intValue = bb.get();
-                    } else if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.WORD) {
+                    } else if (stateAddress.getSimaticDataType() == SimaticPLCDataTypes.WORD) {
                         intValue = bb.getShort();
-                    } else if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.DWORD) {
+                    } else if (stateAddress.getSimaticDataType() == SimaticPLCDataTypes.DWORD) {
                         intValue = bb.getInt();
                     } else {
                         intValue = 0;
@@ -414,15 +414,15 @@ public class SimaticChannel {
             } else if (isDimmer()) {
                 setState(new PercentType(bb.get()));
             } else if (isContact()) {
-                if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
-                    setState((bb.get() & (int) Math.pow(2, getStateAddress().getBitOffset())) != 0 ? OpenClosedType.OPEN
+                if (stateAddress.getSimaticDataType() == SimaticPLCDataTypes.BIT) {
+                    setState((bb.get() & (int) Math.pow(2, stateAddress.getBitOffset())) != 0 ? OpenClosedType.OPEN
                             : OpenClosedType.CLOSED);
                 } else {
                     setState((bb.get() != 0) ? OpenClosedType.OPEN : OpenClosedType.CLOSED);
                 }
             } else if (isSwitch()) {
-                if (getStateAddress().getSimaticDataType() == SimaticPLCDataTypes.BIT) {
-                    setState((bb.get() & (int) Math.pow(2, getStateAddress().getBitOffset())) != 0 ? OnOffType.ON
+                if (stateAddress.getSimaticDataType() == SimaticPLCDataTypes.BIT) {
+                    setState((bb.get() & (int) Math.pow(2, stateAddress.getBitOffset())) != 0 ? OnOffType.ON
                             : OnOffType.OFF);
                 } else {
                     setState(bb.get() != 0 ? OnOffType.ON : OnOffType.OFF);

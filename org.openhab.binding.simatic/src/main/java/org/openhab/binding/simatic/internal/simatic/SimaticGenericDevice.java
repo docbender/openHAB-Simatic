@@ -312,7 +312,7 @@ public class SimaticGenericDevice implements SimaticIDevice {
     protected void processCommandQueue() {
         if (logger.isDebugEnabled()) {
             logger.debug("{} - Processing commandQueue - length {}. Thread={}", toString(), commandQueue.size(),
-                    Thread.currentThread().getId());
+                    Thread.currentThread().threadId());
         }
 
         // no reply expected

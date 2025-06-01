@@ -20,6 +20,7 @@ import org.openhab.core.library.types.StopMoveType;
 import org.openhab.core.library.types.StringType;
 import org.openhab.core.library.types.UpDownType;
 import org.openhab.core.types.Command;
+import org.openhab.core.util.ColorUtil;
 
 /**
  *
@@ -127,9 +128,10 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
             }
         } else if (channel.isColor()) {
             if (command instanceof HSBType) {
-                long red = Math.round((((HSBType) command).getRed().doubleValue() * 2.55));
-                long green = Math.round((((HSBType) command).getGreen().doubleValue() * 2.55));
-                long blue = Math.round((((HSBType) command).getBlue().doubleValue() * 2.55));
+                int[] rgb = ColorUtil.hsbToRgb((HSBType) command);
+                int red = rgb[0];
+                int green = rgb[1];
+                int blue = rgb[2];
 
                 if (red > 255) {
                     red = 255;
