@@ -51,10 +51,12 @@ public class SimaticWriteDataArea implements SimaticIReadWriteDataArea {
 
         if (channel.isNumber()) {
             if (!(command instanceof Number)) {
+                var superclass = command.getClass().getGenericSuperclass();
+                var superclasstypename = superclass == null ? "null" : superclass.getTypeName();
                 throw new Exception(String.format(
                         "Cannot create WriteDataArea. Command for ChannelType=%s must be DecimalType. It is %s (%s)",
-                        channel.getChannelType().getId(), command.getClass().getSimpleName(),
-                        command.getClass().getGenericSuperclass().getTypeName()));
+                        channel.getChannelType().getId(), command.getClass().getSimpleName(), superclasstypename
+                        ));
             }
             Number cmd = (Number) command;
             if (address.getSimaticDataType() == SimaticPLCDataTypes.BYTE

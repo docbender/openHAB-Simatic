@@ -21,6 +21,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.simatic.internal.simatic.SimaticChannel;
 import org.openhab.binding.simatic.internal.simatic.SimaticGenericDevice;
 import org.openhab.binding.simatic.internal.simatic.SimaticUpdateMode;
+import org.openhab.core.thing.Bridge;
 import org.openhab.core.thing.Channel;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
@@ -128,7 +129,6 @@ public class SimaticGenericHandler extends BaseThingHandler {
      *
      * @param bridgeStatusInfo Current bridge status
      */
-    @SuppressWarnings("null")
     @Override
     public void bridgeStatusChanged(ThingStatusInfo bridgeStatusInfo) {
         if (bridgeStatusInfo.getStatus() == ThingStatus.OFFLINE) {
@@ -142,8 +142,15 @@ public class SimaticGenericHandler extends BaseThingHandler {
             return;
         }
 
-        SimaticBridgeHandler b = (SimaticBridgeHandler) (getBridge().getHandler());
-        if (b == null) {
+        Bridge bridge = getBridge();
+        
+        if (bridge == null) {
+            logger.error("simaticBridgeHandler is null");
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_UNINITIALIZED);
+            return;
+        }
+        SimaticBridgeHandler b = (SimaticBridgeHandler) (bridge.getHandler());
+        if (b == null) {            
             logger.error("simaticBridgeHandler is null");
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_UNINITIALIZED);
             return;
@@ -155,14 +162,13 @@ public class SimaticGenericHandler extends BaseThingHandler {
         updateStatus(ThingStatus.ONLINE);
     }
 
-    @SuppressWarnings({ "null", "unused" })
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
         logger.debug("{} - Command {}({}) for channel {}", thing.getLabel(), command, command.getClass(), channelUID);
 
         // get cached values
         if (command instanceof RefreshType) {
-            SimaticChannel channel = channels.get(channelUID);
+            @Nullable SimaticChannel channel = channels.get(channelUID);
             if (channel == null) {
                 logger.warn("{} - cannot get value to refresh. Channel {} not found.", thing.getLabel(), channelUID);
             } else {
@@ -174,7 +180,8 @@ public class SimaticGenericHandler extends BaseThingHandler {
             return;
         }
 
-        if (connection == null) {
+        SimaticGenericDevice connectionLocal = connection;
+        if (connectionLocal == null) {
             return;
         }
 
@@ -182,7 +189,11 @@ public class SimaticGenericHandler extends BaseThingHandler {
             logger.error("{} - command: Channel does not exists. ChannelUID={}", thing.getLabel(), channelUID);
             return;
         }
-        SimaticChannel channel = channels.get(channelUID);
+        @Nullable SimaticChannel channel = channels.get(channelUID);
+
+        if (channel == null) {
+            return;
+        }
 
         if (channel.getCommandAddress() == null) {
             if (!channel.isMissingCommandReported()) {
@@ -193,7 +204,7 @@ public class SimaticGenericHandler extends BaseThingHandler {
             return;
         }
 
-        connection.sendData(channel, command);
+        connectionLocal.sendData(channel, command);
     }
 
     @Override
@@ -248,8 +259,9 @@ public class SimaticGenericHandler extends BaseThingHandler {
      * @return
      */
     public Charset getCharset() {
-        if (connection != null) {
-            return connection.getCharset();
+        var connectionLocal = connection;
+        if (connectionLocal != null) {
+            return connectionLocal.getCharset();
         }
 
         return Charset.defaultCharset();
@@ -261,8 +273,9 @@ public class SimaticGenericHandler extends BaseThingHandler {
      * @return
      */
     public SimaticUpdateMode getUpdateMode() {
-        if (connection != null) {
-            return connection.getUpdateMode();
+        var connectionLocal = connection;
+        if (connectionLocal != null) {
+            return connectionLocal.getUpdateMode();
         }
 
         return SimaticUpdateMode.OnChange;

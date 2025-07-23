@@ -131,8 +131,9 @@ public class SimaticGenericDevice implements SimaticIDevice {
         }
         disposed = true;
         close();
-        if (periodicJob != null) {
-            periodicJob.cancel(true);
+        var periodicJobLocal = periodicJob;
+        if (periodicJobLocal != null) {
+            periodicJobLocal.cancel(true);
             periodicJob = null;
         }
     }

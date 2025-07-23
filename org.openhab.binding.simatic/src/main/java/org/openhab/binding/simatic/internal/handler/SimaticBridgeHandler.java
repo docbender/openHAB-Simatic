@@ -231,8 +231,9 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
 
     @Override
     public void dispose() {
-        if (connection != null) {
-            connection.dispose();
+        SimaticGenericDevice connectionLocal = connection;
+        if (connectionLocal != null) {
+            connectionLocal.dispose();
             connection = null;
         }
         logger.debug("{} - bridge has been stopped", getThing().getLabel());
@@ -289,9 +290,9 @@ public class SimaticBridgeHandler extends BaseBridgeHandler {
             }
         }
 
-        if (connection != null) {
-            var c = connection;
-            c.setDataAreas(stateItems);
+        SimaticGenericDevice connectionLocal = connection;
+        if (connectionLocal != null) {
+            connectionLocal.setDataAreas(stateItems);
         }
 
         updateState(chTagCount, new DecimalType(channelCount));

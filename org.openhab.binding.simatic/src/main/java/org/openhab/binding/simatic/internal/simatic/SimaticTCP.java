@@ -285,8 +285,7 @@ public class SimaticTCP extends SimaticGenericDevice {
      *
      * @throws SimaticReadException
      *
-     */
-    @SuppressWarnings("null")
+     */    
     @Override
     public void readDataArea(SimaticReadDataArea area) throws SimaticReadException {
         startTime = System.currentTimeMillis();
